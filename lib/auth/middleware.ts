@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { TeamDataWithMembers, User } from '@/lib/db/schema';
-import { getTeamForUser, getUser } from '@/lib/db/queries';
+import { getTeamForUser, getUser } from '@/lib/db/queries/user';
 import { redirect } from 'next/navigation';
 
 export type ActionState = {
@@ -46,6 +46,7 @@ export function validatedActionWithUser<S extends z.ZodType<any, any>, T>(
 
     const result = schema.safeParse(Object.fromEntries(formData));
     if (!result.success) {
+      console.log('result error: ', JSON.stringify(result.error))
       return { error: result.error.errors[0].message };
     }
 
