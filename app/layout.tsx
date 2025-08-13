@@ -1,8 +1,9 @@
 import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import { Manrope } from 'next/font/google';
-import { getUser, getTeamForUser } from '@/lib/db/queries';
+import { getUser, getTeamForUser } from '@/lib/db/queries/user';
 import { SWRConfig } from 'swr';
+import { ToastProvider } from '@/components/ui/toast';
 
 export const metadata: Metadata = {
   title: 'Next.js SaaS Starter',
@@ -36,7 +37,9 @@ export default function RootLayout({
             }
           }}
         >
-          {children}
+          <ToastProvider>
+            {children}
+          </ToastProvider>
         </SWRConfig>
       </body>
     </html>

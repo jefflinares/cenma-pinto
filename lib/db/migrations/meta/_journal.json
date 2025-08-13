@@ -8,6 +8,34 @@
       "when": 1726443359662,
       "tag": "0000_soft_the_anarchist",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1752537863623,
+      "tag": "0001_dizzy_nightshade",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1752539084075,
+      "tag": "0002_late_surge",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1753861950804,
+      "tag": "0003_little_expediter",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1753862971015,
+      "tag": "0004_thin_loki",
+      "breakpoints": true
     }
   ]
 }
