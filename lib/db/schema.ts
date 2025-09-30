@@ -213,21 +213,13 @@ export const providers = pgTable('providers', {
 });
 
 export const trucks = pgTable('trucks', {
-  plate: varchar('plate', { length: 20 }).primaryKey(),
+  id: serial('id').primaryKey(),
+  plate: varchar('plate', { length: 20 }).notNull(),
   ownerId: integer('owner_id').references(() => providers.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
   deletedAt: timestamp('deleted_at'),
 });
-
-export const products = pgTable('products', {
-  id: serial('id').primaryKey(),
-  name: varchar('name', { length: 100 }).notNull().unique(),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  deletedAt: timestamp('deleted_at'),
-});
-
 
 /* export const productClassifications = pgTable('product_classifications', {
   id: serial('id').primaryKey(),
@@ -237,15 +229,27 @@ export const products = pgTable('products', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
   deletedAt: timestamp('deleted_at'),
 });
- */
-
+*/
 export const containers = pgTable('containers', {
   id: serial('id').primaryKey(),
-  name: varchar('name', { length: 50 }).notNull().unique(),
+  name: varchar('name', { length: 50 }).notNull(),
+  capacity: decimal('capacity', { precision: 10, scale: 2 }).notNull(),
+  unit: varchar('unit', { length: 20 }).notNull(), // e.g., 'kg', 'liters'
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
   deletedAt: timestamp('deleted_at'),
 });
+ 
+
+export const products = pgTable('products', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 100 }).notNull(),
+  container: integer('container_id').references(() => containers.id),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  deletedAt: timestamp('deleted_at'),
+});
+
 
 export const incomes = pgTable('incomes', {
   id: serial('id').primaryKey(),
@@ -259,7 +263,7 @@ export const incomes = pgTable('incomes', {
 export const incomeTrucks = pgTable('income_trucks', {
   id: serial('id').primaryKey(),
   incomeId: integer('income_id').notNull().references(() => incomes.id),
-  truckPlate: varchar('truck_plate', { length: 20 }).notNull().references(() => trucks.plate),
+  truckId: integer('truck_id').notNull().references(() => trucks.id),
   driverName: varchar('driver_name', { length: 100 }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),

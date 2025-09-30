@@ -11,7 +11,7 @@ interface Toast {
 }
 
 interface ToastContextType {
-  addToast: (message: string, type?: ToastType) => void;
+  addToast: (message: string, type?: ToastType, duration?: number) => void;
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
@@ -25,12 +25,12 @@ export const useToast = () => {
 export const ToastProvider = ({ children }: { children: ReactNode }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const addToast = (message: string, type: ToastType = "info") => {
+  const addToast = (message: string, type: ToastType = "info", duration: number = 3000) => {
     const id = Date.now();
     setToasts((prev) => [...prev, { id, message, type }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 3000);
+    }, duration);
   };
 
   const removeToast = (id: number) => {

@@ -3,48 +3,61 @@ import { useState } from "react";
 import { Input } from "./input";
 import { Modal } from "./modal";
 
-function ComboBoxWithModal({ className, type, ...props }: React.ComponentProps<"input">) {
-  const [options, setOptions] = useState([
-    "Pedro Pérez",
-    "Julio Gomez",
-    "Luis Fernández",
-    "Antonio López",
-    "María García",
-    "Ana Martínez",
-  ]);
-  const [query, setQuery] = useState("");
+export type Entity = {
+  id: string | number;
+  name: string;
+};
+
+export type ComboBoxWithModalProps = React.ComponentProps<"input"> & {
+  data?: Entity[];
+  modalChildren?: React.ReactNode;
+  selectedOption?: Entity | null;
+  setComboBoxSelectedOption?: React.Dispatch<
+    React.SetStateAction<Entity | null>
+  >;
+  onAddCallBackAction?: () => void;
+};
+
+function ComboBoxWithModal({
+  className,
+  data,
+  type,
+  modalChildren,
+  onAddCallBackAction,
+  selectedOption,
+  setComboBoxSelectedOption,
+  ...props
+}: ComboBoxWithModalProps) {
+  console.log("🚀 ~ ComboBoxWithModal ~ selectedOption:", selectedOption)
+  const [options, setOptions] = useState(data || []);
+  const [query, setQuery] = useState(selectedOption ? selectedOption.name : "");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newOption, setNewOption] = useState("");
+  const [newOption, setNewOption] = useState({ id: 0, name: "" });
 
   const filteredOptions = options.filter((opt) =>
-    opt.toLowerCase().includes(query.toLowerCase())
+    opt.name.toLowerCase().includes(query.toLowerCase())
   );
 
   const handleAddOption = () => {
-    if (newOption.trim() !== "") {
-      setOptions([...options, newOption.trim()]);
-      setQuery(newOption.trim());
-      setNewOption("");
+    if (newOption.name.trim() !== "") {
+      setOptions([
+        ...options,
+        { id: options.length + 1, name: newOption.name.trim() },
+      ]);
+      setQuery(newOption.name);
+      setNewOption({ id: 0, name: "" });
       setIsModalOpen(false);
     }
   };
-  
-  const modalChildren = (
-    <input
-      type="text"
-      value={newOption}
-      onChange={(e) => setNewOption(e.target.value)}
-      className="w-full border rounded px-3 py-2 mb-4 focus:outline-none focus:ring focus:border-blue-300"
-      placeholder="Nombre de la nueva opción"
-    />
-  )
 
   return (
     <div>
-      <Input 
+      <Input
         type="text"
         value={query}
-        onChange={(e) => setQuery(e.target.value)}
+        onChange={(e) => {
+          setQuery(e.target.value);
+        }}
         placeholder="Escribe para buscar..."
       />
 
@@ -53,27 +66,37 @@ function ComboBoxWithModal({ className, type, ...props }: React.ComponentProps<"
           filteredOptions.map((opt, idx) => (
             <div
               key={idx}
-              onClick={() => setQuery(opt)}
+              onClick={() => {
+                setQuery(opt.name);
+                setComboBoxSelectedOption && setComboBoxSelectedOption(opt);
+              }}
               className="px-3 py-2 hover:bg-blue-100 cursor-pointer"
             >
-              {opt}
+              {opt.name}
             </div>
           ))
         ) : (
           <div className="px-3 py-2 text-gray-500 flex justify-between items-center">
             <span>No se encontró la opción</span>
-            <button
-              onClick={() => setIsModalOpen(true)}
+            {modalChildren && (<button
+              onClick={() => {
+                onAddCallBackAction?.();
+                setIsModalOpen(true);
+              }}
               className="ml-2 text-blue-600 hover:underline text-sm"
             >
               Agregar nueva
-            </button>
+            </button>)}
           </div>
         )}
       </div>
 
-      {isModalOpen && (
-        <Modal setIsModalOpen={setIsModalOpen} children={modalChildren} onConfirmAction={handleAddOption}/>
+      {isModalOpen && modalChildren && (
+        <Modal
+          setIsModalOpen={setIsModalOpen}
+          children={modalChildren}
+          onConfirmAction={handleAddOption}
+        />
       )}
     </div>
   );

@@ -36,6 +36,48 @@
       "when": 1753862971015,
       "tag": "0004_thin_loki",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1756966361205,
+      "tag": "0005_far_leech",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1757512461842,
+      "tag": "0006_wonderful_tusk",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1758675522301,
+      "tag": "0007_jazzy_multiple_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1759195247603,
+      "tag": "0008_slippery_starjammers",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1759197467050,
+      "tag": "0009_common_tyrannus",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1759216932573,
+      "tag": "0010_luxuriant_radioactive_man",
+      "breakpoints": true
     }
   ]
 }

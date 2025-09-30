@@ -88,34 +88,10 @@ export default function SalesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Información del Camión</CardTitle>
+          <CardTitle>VENTAS</CardTitle>
         </CardHeader>
         <CardContent>
-          <form className="space-y-4" action={formAction}>
-            <Suspense fallback={<AccountForm state={state} />}>
-              <AccountFormWithData state={state} />
-            </Suspense>
-            {state.error && (
-              <p className="text-red-500 text-sm">{state.error}</p>
-            )}
-            {state.success && (
-              <p className="text-green-500 text-sm">{state.success}</p>
-            )}
-            <Button
-              type="submit"
-              className="bg-orange-500 hover:bg-orange-600 text-white"
-              disabled={isPending}
-            >
-              {isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Registrar Camión'
-              )}
-            </Button>
-          </form>
+         
         </CardContent>
       </Card>
     </section>

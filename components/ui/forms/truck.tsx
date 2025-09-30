@@ -1,56 +1,76 @@
-import React from 'react';
-import { Label } from '../label';
-import { Input } from '../input';
-import { ComboBoxWithModal } from '../comboBox';
+import React from "react";
+import GenericForm, { GenericFormField, GenericFormState } from "./GenericForm";
+import { ComboBoxWithModalProps } from "../comboBox";
 
-type ActionState = {
+export type TruckActionState = {
+  id?: string;
   plate?: string;
-  owner?: string;
+  ownerId?: string;
   error?: string;
   success?: string;
 };
 
-type TruckFormProps = {
-  state: ActionState;
-  plateValue?: string;
-  ownerValue?: string;
+type TruckProps = ComboBoxWithModalProps & {
+  formAction: (formData: FormData) => void | Promise<void>;
+  state: TruckActionState;
+  isPending: boolean;
+  isEditing: boolean;
+  setIsModalOpen: (isOpen: boolean) => void;
+  setIsEditing: (isEditing: boolean) => void;
 };
 
-function TruckForm({
-  state,
-  plateValue,
-  ownerValue
-}: TruckFormProps) {
-  return (
-    <>
-      <div>
-        <Label htmlFor="plate" className="mb-2">
-          Placa
-        </Label>
-        <Input
-          id="plate"
-          name="plate"
-          placeholder="Placa Camión"
-          defaultValue={state.plate}
-          required
-        />
-      </div>
-      <div>
-        <Label htmlFor="owner" className="mb-2">
-          Propietario
-        </Label>
-        <ComboBoxWithModal id="owner"/>
-        {/* <Input
-          id="owner"
-          name="owner"
-          type="text"
-          placeholder="Ingrese el propietario"
-          defaultValue={''}
-          required
-        /> */}
-      </div>
-    </>
-  );
-}
+const truckFields: GenericFormField[] = [
+  { name: "id", label: "ID", hidden: true },
+  { name: "plate", label: "Placa", required: true, placeholder: "Placa Camión" },
+  {
+    name: "ownerId",
+    label: "Propietario",
+    type: "combobox",
+    data: undefined, // will be set via props
+    required: true,
+    placeholder: "Selecciona un propietario",
+  },
+];
 
-export default TruckForm;
+const Truck = ({
+  formAction,
+  state,
+  isPending,
+  isEditing,
+  setIsModalOpen,
+  setIsEditing,
+  data,
+  selectedOption,
+  setComboBoxSelectedOption,
+  modalChildren,
+  onAddCallBackAction,
+}: TruckProps) => {
+  // Set ownerData for the combobox field
+  const fields = truckFields.map((field) =>
+    field.name === "ownerId" ? { ...field, data } : field
+  );
+
+  return (
+    <GenericForm
+      fields={fields}
+      state={state as GenericFormState}
+      isPending={isPending}
+      isEditing={isEditing}
+      formAction={formAction}
+      onCancel={() => {
+        setIsModalOpen(false);
+        isEditing && setIsEditing(false);
+      }}
+      submitText="Registrar Camión"
+      editText="Actualizar Camión"
+      // ComboBox props
+      data={data}
+      selectedOption={selectedOption}
+      setComboBoxSelectedOption={setComboBoxSelectedOption}
+      modalChildren={modalChildren}
+      onAddCallBackAction={onAddCallBackAction}
+    />
+  );
+};
+
+export default Truck;

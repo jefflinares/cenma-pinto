@@ -25,6 +25,52 @@ const iconMap: Record<ActivityType, LucideIcon> = {
   [ActivityType.REMOVE_TEAM_MEMBER]: UserMinus,
   [ActivityType.INVITE_TEAM_MEMBER]: Mail,
   [ActivityType.ACCEPT_INVITATION]: CheckCircle,
+  [ActivityType.CREATE_PROVIDER]: Settings,
+  [ActivityType.UPDATE_PROVIDER]: Settings,
+  [ActivityType.DELETE_PROVIDER]: Settings,
+  [ActivityType.CREATE_TRUCK]: Settings,
+  [ActivityType.UPDATE_TRUCK]: Settings,
+  [ActivityType.DELETE_TRUCK]: Settings,
+  [ActivityType.UPDATE_CUSTOMER]: Settings,
+  [ActivityType.DELETE_CUSTOMER]: Settings,
+  [ActivityType.CREATE_PRODUCT]: Settings,
+  [ActivityType.UPDATE_PRODUCT]: Settings,
+  [ActivityType.DELETE_PRODUCT]: Settings,
+  [ActivityType.CREATE_ORDER]: Settings,
+  [ActivityType.UPDATE_ORDER]: Settings,
+  [ActivityType.DELETE_ORDER]: Settings,
+  [ActivityType.UPDATE_PAYMENT]: Settings,
+  [ActivityType.DELETE_PAYMENT]: Settings,
+  /*[ActivityType.CREATE_EXPENSE]: Settings,
+  [ActivityType.CREATE_DRIVER]: Settings,
+  [ActivityType.UPDATE_DRIVER]: Settings,
+  [ActivityType.DELETE_DRIVER]: Settings,
+  [ActivityType.CREATE_ROUTE]: Settings,
+  [ActivityType.UPDATE_ROUTE]: Settings,
+  [ActivityType.DELETE_ROUTE]: Settings,
+  [ActivityType.CREATE_SHIPMENT]: Settings,
+  [ActivityType.UPDATE_SHIPMENT]: Settings,
+  [ActivityType.DELETE_SHIPMENT]: Settings,
+  [ActivityType.CREATE_CUSTOMER]: Settings,
+  [ActivityType.CREATE_INVOICE]: Settings,
+  [ActivityType.UPDATE_INVOICE]: Settings,
+  [ActivityType.DELETE_INVOICE]: Settings,
+  [ActivityType.CREATE_PAYMENT]: Settings,
+  [ActivityType.UPDATE_EXPENSE]: Settings,
+  [ActivityType.DELETE_EXPENSE]: Settings,
+  [ActivityType.CREATE_DOCUMENT]: Settings,
+  [ActivityType.UPDATE_DOCUMENT]: Settings,
+  [ActivityType.DELETE_DOCUMENT]: Settings,
+  [ActivityType.CREATE_NOTIFICATION]: Settings,
+  [ActivityType.UPDATE_NOTIFICATION]: Settings,
+  [ActivityType.DELETE_NOTIFICATION]: Settings,
+  [ActivityType.CREATE_ROLE]: Settings,
+  [ActivityType.UPDATE_ROLE]: Settings,
+  [ActivityType.DELETE_ROLE]: Settings,
+  [ActivityType.CREATE_PERMISSION]: Settings,
+  [ActivityType.UPDATE_PERMISSION]: Settings,
+  [ActivityType.DELETE_PERMISSION]: Settings,
+  */
 };
 
 function getRelativeTime(date: Date) {
@@ -63,6 +109,18 @@ function formatAction(action: ActivityType): string {
       return 'You invited a team member';
     case ActivityType.ACCEPT_INVITATION:
       return 'You accepted an invitation';
+    case ActivityType.CREATE_PROVIDER:
+      return 'You created a new provider';
+    case ActivityType.UPDATE_PROVIDER:
+      return 'You updated a provider';
+    case ActivityType.DELETE_PROVIDER:
+      return 'You deleted a provider';
+    case ActivityType.CREATE_PRODUCT:
+      return 'You created a new product';
+    case ActivityType.UPDATE_PRODUCT:
+      return 'You updated a product';
+    case ActivityType.DELETE_PRODUCT:
+      return 'You deleted a product';
     default:
       return 'Unknown action occurred';
   }

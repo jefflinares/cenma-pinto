@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import { Modal } from "./modal";
+import { Input } from "./input";
+import { EntityWithId } from "./EntityListSection";
 
 export type Column<T> = {
   header: string;
@@ -20,7 +22,7 @@ interface DataTableProps<T> {
   onDelete: (row: T) => void;
 }
 
-export default function DataTable<T extends { id: string | number }>({
+export default function DataTable<T extends EntityWithId>({
   isLoading,
   columns,
   data,
@@ -34,15 +36,30 @@ export default function DataTable<T extends { id: string | number }>({
   const totalPages = Math.ceil(totalItems / pageSize);
 
   const [isModalOpen, setIsModalOpen] = React.useState(false);
-
+  const [query, setQuery] = useState("")
   const [itemToDelete, setItemToDelete] = React.useState<T | null>(null);
   console.log("🚀 ~ DataTable ~ itemToDelete:", itemToDelete)
-
+  const filteredData = data.filter(row => {
+  // Concatenate all string fields
+  const rowText = Object.values(row)
+    .filter(val => typeof val === "string")
+    .join(" ")
+    .toLowerCase();
+  return rowText.includes(query.toLowerCase());
+});
   return (
-    <div className="overflow-x-auto border rounded-lg shadow">
-      <table className="min-w-full text-left">
-        <thead className="bg-gray-100 border-b">
-          <tr>
+    <div>
+      <Input
+        type="text"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Escribe para buscar..."
+      />
+      <br />
+      <div className="overflow-x-auto border rounded-lg shadow">
+        <table className="min-w-full text-left">
+          <thead className="bg-gray-100 border-b">
+            <tr>
             {columns.map((col, idx) => (
               <th
                 key={idx}
@@ -57,8 +74,8 @@ export default function DataTable<T extends { id: string | number }>({
           </tr>
         </thead>
         <tbody>
-          {data.length > 0 && !isLoading ? (
-            data.map((row) => (
+          {filteredData.length > 0 && !isLoading ? (
+            filteredData.map((row) => (
               <tr key={row.id} className="border-b hover:bg-gray-50">
                 {columns.map((col, idx) => (
                   <td key={idx} className="px-4 py-2 text-sm text-gray-800">
@@ -135,6 +152,7 @@ export default function DataTable<T extends { id: string | number }>({
           { "¿Estás seguro de que deseas eliminar este elemento? " + itemToDelete?.name }
         </Modal>
       )}
+    </div>
     </div>
   );
 }

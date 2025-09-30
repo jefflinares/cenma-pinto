@@ -1,6 +1,6 @@
-import { isNull, desc } from "drizzle-orm";
+import { isNull, desc, eq } from "drizzle-orm";
 import { db } from "../drizzle";
-import { products as productsTable } from "../schema";
+import { containers as containersTable, products as productsTable } from "../schema";
 import { validateSession } from "./util";
 
 export async function getProducts() {
@@ -10,8 +10,13 @@ export async function getProducts() {
     }
 
     const products = await db
-        .select()
-        .from(productsTable) 
+        .select({
+            id: productsTable.id,
+            name: productsTable.name,
+            container: containersTable.name
+        })
+        .from(productsTable)
+        .innerJoin(containersTable, eq(containersTable.id, productsTable.container))
         .where(isNull(productsTable.deletedAt)) // Filter out soft-deleted products
         .orderBy(desc(productsTable.createdAt)); // Order by creation date
 

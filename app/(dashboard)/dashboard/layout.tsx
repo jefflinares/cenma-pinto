@@ -17,9 +17,9 @@ export default function DashboardLayout({
   const navItems = [
     { href: '/dashboard', icon: Users, label: 'Team' },
     { href: '/dashboard/general', icon: Settings, label: 'General' },
-    { href: '/dashboard/products', icon: Boxes, label: 'Productos' },
-    { href: '/dashboard/suppliers', icon: Factory, label: 'Ingresos de Proveedores' },
-    { href: '/dashboard/sales', icon: DollarSign, label: 'Ventas' },
+    { href: '/dashboard/productos', icon: Boxes, label: 'Productos' },
+    { href: '/dashboard/proveedores', icon: Factory, label: 'Ingresos de Proveedores' },
+    { href: '/dashboard/ventas', icon: DollarSign, label: 'Ventas' },
     { href: '/dashboard/cobros', icon: Wallet, label: 'Cobros' },
     { href: '/dashboard/activity', icon: Activity, label: 'Activity' },
     { href: '/dashboard/security', icon: Shield, label: 'Security' }
