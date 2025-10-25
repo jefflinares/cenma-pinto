@@ -38,12 +38,15 @@ const Product = ({
 }: ProductProps) => {
   console.log("🚀 ~ ProductOrContainer ~ state:", state)
   const productFields = [
-    { name: "id", label: "ID", hidden: true },
+    ...(isEditing
+      ? [{ name: "id", label: "ID", hidden: true, defaultValue: state?.id }]
+      : []),
     {
       name: "name",
       label: "Nombre del producto",
       required: true,
       placeholder: "Nombre del Producto",
+      defaultValue: state?.name || "",
     },
     { 
       name: "container",
@@ -52,6 +55,7 @@ const Product = ({
       required: true,
       placeholder: "Seleccione un contenedor",
       data,
+      defaultValue: state?.container || "",
     }
   ];
   return (

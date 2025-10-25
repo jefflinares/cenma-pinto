@@ -1,7 +1,6 @@
 "use client";
 import { useActionState, useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Provider, Truck } from "@/lib/db/schema";
+import { Income, IncomeDetail, Provider } from "@/lib/db/schema";
 import useSWR, { mutate } from "swr";
 import SupplierForm, {
   SupplierActionState,
@@ -10,47 +9,95 @@ import {
   addSupplier,
   updateSupplier,
   deleteSupplier,
-  updateTruck,
-  addTruck,
-  deleteTruck,
+  updateIncome,
+  addIncome,
 } from "./actions";
 import { useToast } from "@/components/ui/toast";
 import { EntityListSection } from "@/components/ui/EntityListSection";
-import TruckForm, { TruckActionState } from "@/components/ui/forms/truck";
+// import TruckForm, { TruckActionState } from "@/components/ui/forms/truck";
 import AddOrEditEntityComponent from "@/components/ui/forms/addOrEditForm";
+import IncomeForm, {
+  IncomeActionState,
+} from "@/components/ui/forms/incomeForm";
+import NestedTable from "@/components/ui/NestedTable";
+import { ProductRow } from "../productos/page";
 
-type TruckRow = Truck & { providerName?: string };
+type ProviderRow = Provider;
+export type IncomeDetailRow = IncomeDetail & { productName?: string };
+type IncomeRow = Income & {
+  formatedDate?: string;
+  providerName?: string;
+  incomeDetails?: IncomeDetailRow[];
+};
+
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function SuppliersPage() {
-  const { data: suppliers = [], isLoading } = useSWR<Provider[]>(
+  const { data: suppliers = [], isLoading } = useSWR<ProviderRow[]>(
     "/api/supplier",
     fetcher
   );
-  const { data: trucks = [], isLoading: isLoadingTrucks } = useSWR<Truck[]>(
-    "/api/truck",
-    fetcher
-  );
+  //console.log("🚀 ~ SuppliersPage ~ suppliers:", suppliers);
 
-  const [selectedSupplier, setSelectedSupplier] = useState<Provider | null>(
+  const {
+    data: incomes,
+    error: errorIncomes,
+    isLoading: isLoadingIncomes,
+  } = useSWR<IncomeRow[]>("/api/incomes", fetcher);
+
+  const {
+    data: productsData,
+    error: errorProducts,
+    isLoading: isLoadingProducts,
+  } = useSWR<ProductRow[]>("/api/product", fetcher);
+  //console.log("🚀 ~ SuppliersPage ~ productsData:", productsData);
+
+  const { addToast } = useToast();
+
+  const [selectedSupplier, setSelectedSupplier] = useState<ProviderRow | null>(
     null
   );
-  const [selectedTruck, setSelectedTruck] = useState<Truck | null>(null);
+  const [selectedIncome, setSelectedIncome] = useState<IncomeRow | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [isTruckEditing, setIsTruckEditing] = useState(false);
+
+  const [isIncomeEditing, setIsIncomeEditing] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isTruckModalOpen, setIsTruckModalOpen] = useState(false);
+
+  const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
+
   const [comboBoxSelectedOption, setComboBoxSelectedOption] = useState<{
     id: string | number;
     name: string;
   } | null>(null);
 
+  const [actionFn, setActionFn] = useState<
+    ((prevState: any, formData: FormData) => Promise<any>)
+  >();
+
   // Cambia la función de acción según el modo
-  const actionFn = isEditing ? updateSupplier : addSupplier;
-  const actionFnTruck = isTruckEditing ? updateTruck : addTruck;
+  useEffect(() => {
+    if (isEditing) {
+      setActionFn(() => updateSupplier);
+    } else {
+      setActionFn(() => addSupplier);
+    }
+  }, [isEditing]);
+
+  const [actionFnIncomes, setActionFnIncomes] = useState<
+    ((prevState: any, formData: FormData) => Promise<any>)
+  >();
+
+  useEffect(() => {
+    if (isIncomeEditing) {
+      setActionFnIncomes(() => updateIncome);
+    } else {
+      setActionFnIncomes(() => addIncome);
+    }
+  }, [isIncomeEditing]);
+
   const [initialState, setInitialState] = useState({});
-  const [truckInitialState, setTruckInitialState] = useState({});
-  console.log("🚀 ~ SuppliersPage ~ truckInitialState:", truckInitialState);
+  const [incomeInitialState, setIncomeInitialState] = useState({});
+
   useEffect(() => {
     if (isEditing) {
       const initialState =
@@ -66,40 +113,15 @@ export default function SuppliersPage() {
     }
   }, [isEditing, selectedSupplier]);
 
-  useEffect(() => {
-    if (isTruckEditing) {
-      const truckInitialState =
-        isTruckEditing && selectedTruck
-          ? {
-              plate: selectedTruck.plate,
-              ownerId: selectedTruck.ownerId,
-            }
-          : {};
-      setTruckInitialState(truckInitialState);
-    }
-  }, [isTruckEditing, selectedTruck]);
-
-  useEffect(() => {
-    if (comboBoxSelectedOption) {
-      setTruckInitialState((prevState) => ({
-        ...prevState,
-        ownerId: comboBoxSelectedOption.id,
-      }));
-    }
-  }, [comboBoxSelectedOption]);
-
-  const { addToast } = useToast();
-
   const [stateSupplier, formActionSupplier, isPending] = useActionState<
     SupplierActionState,
     FormData
   >(actionFn, initialState);
 
-  const [stateTruck, formActionTruck, isPendingTruck] = useActionState<
-    TruckActionState,
+  const [stateIncomes, formActionIncomes, isPendingIncomes] = useActionState<
+    IncomeActionState,
     FormData
-  >(actionFnTruck, truckInitialState);
-  console.log("🚀 ~ SuppliersPage ~ stateTruck:", stateTruck);
+  >(actionFnIncomes, incomeInitialState);
 
   // Al finalizar la acción:
   useEffect(() => {
@@ -118,18 +140,20 @@ export default function SuppliersPage() {
   }, [stateSupplier]);
 
   useEffect(() => {
-    if (stateTruck?.success) {
-      mutate("/api/truck"); // Refresca camiones con SWR
+    if (stateIncomes?.success) {
+      mutate("/api/incomes"); // Refresca camiones con SWR
       addToast(
-        isTruckEditing ? "Camión actualizado" : "Camión agregado",
+        isIncomeEditing ? "Ingreso actualizado" : "Ingreso agregado",
         "success"
       );
-      setIsTruckModalOpen(false);
-      setIsTruckEditing(false);
-    } else if (stateTruck?.error) {
-      addToast(stateTruck.error, "error");
+      setIsIncomeModalOpen(false);
+      setIsIncomeEditing(false);
+      setIncomeInitialState({});
+      setSelectedIncome(null);
+    } else if (stateIncomes?.error) {
+      addToast(stateIncomes.error, "error");
     }
-  }, [stateTruck]);
+  }, [stateIncomes]);
 
   const handleOnDelete = async (
     id: string | number,
@@ -151,17 +175,6 @@ export default function SuppliersPage() {
         console.error("Error deleting proveedor:", error);
       }
     } else {
-      console.log("Eliminando un camión con placa:", id);
-      const formData = new FormData();
-      formData.append("id", String(id));
-      const response = await deleteTruck({ id }, formData);
-      console.log("🚀 ~ handleOnDelete ~ response:", response);
-      if (response.error) {
-        addToast(response.error, "error");
-        return;
-      }
-      addToast("Camión eliminado", "success");
-      mutate("/api/truck");
     }
   };
 
@@ -183,42 +196,55 @@ export default function SuppliersPage() {
     );
   };
 
-  const addNewTruck = (
-    state: TruckActionState,
+  const addNewIncome = (
+    state: IncomeActionState,
     formAction: (formData: FormData) => void | Promise<void>
   ) => {
     return AddOrEditEntityComponent(
-      isTruckEditing ? "Editar Camión" : "Agregar Camión",
+      isIncomeEditing ? "Editar Ingreso" : "Agregar Ingreso",
 
-      <TruckForm
+      <IncomeForm
         formAction={formAction}
         state={state}
         selectedOption={comboBoxSelectedOption}
         setComboBoxSelectedOption={setComboBoxSelectedOption}
         isPending={isPending}
-        isEditing={isTruckEditing}
-        setIsModalOpen={setIsTruckModalOpen}
-        setIsEditing={setIsTruckEditing}
+        isEditing={isIncomeEditing}
+        setIsModalOpen={setIsIncomeModalOpen}
+        setIsEditing={setIsIncomeEditing}
         data={suppliers?.map((supplier) => ({
           id: supplier.id,
           name: supplier.name,
         }))}
-        modalChildren={addNewSupplier(stateSupplier, formActionSupplier)}
+        providersData={suppliers?.map((supplier) => ({
+          id: supplier.id,
+          name: supplier.name,
+        }))}
+        productsData={productsData?.map((product) => ({
+          id: product.id,
+          name: product.name,
+        }))}
+        // modalChildren={addNewSupplier(stateSupplier, formActionSupplier)}
         onAddCallBackAction={() => {
           // Aquí puedes manejar la acción de agregar un nuevo proveedor
-          console.log(
-            "callback para cerrar el formulario del truck y permitir que se abra el de proveedores"
-          );
-          setIsTruckModalOpen(false);
-          setIsModalOpen(true);
+          setIsIncomeModalOpen(false);
+          setIncomeInitialState({});
+          setSelectedIncome(null);
         }}
       />
     );
   };
 
+  const incomeDetailColumns: {
+    header: string;
+    field: keyof IncomeDetailRow;
+  }[] = [
+    { header: "Producto", field: "productName" },
+    { header: "Cantidad", field: "quantity" },
+  ];
   return (
     <>
-      <EntityListSection<Provider>
+      <EntityListSection<ProviderRow>
         title="Proveedores"
         addButtonText="Agregar nuevo Proveedor"
         isLoading={isLoading}
@@ -243,53 +269,70 @@ export default function SuppliersPage() {
         modalContent={addNewSupplier(
           isEditing
             ? (selectedSupplier as any as SupplierActionState)
-            : stateSupplier,
+            : {} as any,
           formActionSupplier
         )}
         callBackActionWhenModalOpen={() => {
+          console.log('reset selected supplier and initial state when modal opens');
+          setIsEditing(false)
           setSelectedSupplier(null);
-          setInitialState({ success: "" });
+          setInitialState({ });
         }}
       />
-      <EntityListSection<TruckRow>
-        title="Camiones"
-        addButtonText="Agregar nuevo Camión"
-        isLoading={isLoadingTrucks}
-        data={trucks ?? []}
+
+      <EntityListSection<IncomeRow>
+        title="Ingresos de Productos"
+        addButtonText="Agregar nuevo Ingreso"
+        isLoading={isLoadingIncomes}
+        data={incomes ?? []}
         columns={[
-          { header: "Placa", field: "plate" },
-          { header: "Dueño", field: "providerName" },
+          { header: "Fecha", field: "formatedDate" },
+          { header: "Proveedor", field: "providerName" },
           // { header: "Dirección", field: "address" },
         ]}
         currentPage={1}
-        totalItems={trucks?.length || 0}
+        totalItems={incomes?.length || 0}
         pageSize={10}
         onPageChange={() => {}}
-        onEdit={(truck) => {
-          setSelectedTruck(truck);
-          setIsTruckEditing(true);
+        onEdit={(income) => {
+          setSelectedIncome(income);
+          setIsIncomeEditing(true);
           setComboBoxSelectedOption({
-            id: truck.ownerId ?? -1,
-            name: suppliers.find((s) => s.id === truck.ownerId)?.name || "",
+            id: income.providerId ?? -1,
+            name: incomes?.find((t) => t.providerId === income.providerId)?.providerName || "",
           });
-          setIsTruckModalOpen(true);
+          setIsIncomeModalOpen(true);
         }}
         onDelete={({ id }) => {
           handleOnDelete(id, false);
         }}
-        isModalOpen={isTruckModalOpen}
-        setIsModalOpen={setIsTruckModalOpen}
+        isModalOpen={isIncomeModalOpen}
+        setIsModalOpen={setIsIncomeModalOpen}
         callBackActionWhenModalOpen={() => {
           console.log(
             "callback para resetear el comboBoxSelectedOption y evitar que quede el último seleccionado aparezca en el formulario del truck"
           );
+          setIsIncomeEditing(false)
           setComboBoxSelectedOption(null);
+          setSelectedIncome(null);
+          setIncomeInitialState({});
         }}
-        modalContent={addNewTruck(
-          isTruckEditing
-            ? (selectedTruck as any as TruckActionState)
-            : stateTruck,
-          formActionTruck
+        modalContent={addNewIncome(
+          isIncomeEditing
+            ? (selectedIncome as any as IncomeActionState)
+            : {} as any,
+          formActionIncomes
+        )}
+        hasNestedData={(income: IncomeRow) => {
+          console.log("evaluation income hasnestedData", income);
+          return !!(income.incomeDetails && income.incomeDetails.length > 0);
+        }}
+        renderNestedContent={(income: IncomeRow) => (
+          <NestedTable
+            title="Detalles de Ingreso"
+            columns={incomeDetailColumns}
+            data={income.incomeDetails || []}
+          />
         )}
       />
     </>

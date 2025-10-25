@@ -61,7 +61,7 @@ function ComboBoxWithModal({
         placeholder="Escribe para buscar..."
       />
 
-      <div className="border rounded mt-2 bg-white max-h-40 overflow-auto">
+      {  (<div className="border rounded mt-2 bg-white max-h-40 overflow-auto">
         {filteredOptions.length > 0 ? (
           filteredOptions.map((opt, idx) => (
             <div
@@ -75,8 +75,8 @@ function ComboBoxWithModal({
               {opt.name}
             </div>
           ))
-        ) : (
-          <div className="px-3 py-2 text-gray-500 flex justify-between items-center">
+        ) : ( 
+            <div className="px-3 py-2 text-gray-500 flex justify-between items-center">
             <span>No se encontró la opción</span>
             {modalChildren && (<button
               onClick={() => {
@@ -89,7 +89,7 @@ function ComboBoxWithModal({
             </button>)}
           </div>
         )}
-      </div>
+      </div>)}
 
       {isModalOpen && modalChildren && (
         <Modal

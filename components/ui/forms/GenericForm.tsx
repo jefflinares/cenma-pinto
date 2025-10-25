@@ -3,7 +3,11 @@ import { Label } from "../label";
 import { Input } from "../input";
 import { Button } from "../button";
 import { Loader2 } from "lucide-react";
-import { ComboBoxWithModal, Entity, type ComboBoxWithModalProps } from "../comboBox";
+import {
+  ComboBoxWithModal,
+  Entity,
+  type ComboBoxWithModalProps,
+} from "../comboBox";
 
 export type GenericFormField = {
   name: string;
@@ -17,6 +21,14 @@ export type GenericFormField = {
   props?: Record<string, any>;
 };
 
+export type GenericFormRowField = {
+  type: "row";
+  fields: GenericFormField[]; // Array of fields to display in a row
+  className?: string; // Optional custom styling for the row
+};
+
+export type GenericFormFieldOrRow = GenericFormField | GenericFormRowField;
+
 export type GenericFormState = {
   error?: string;
   success?: string;
@@ -24,7 +36,7 @@ export type GenericFormState = {
 };
 
 type GenericFormProps = ComboBoxWithModalProps & {
-  fields: GenericFormField[];
+  fields: GenericFormFieldOrRow[];
   state: GenericFormState;
   isPending: boolean;
   isEditing?: boolean;
@@ -46,18 +58,14 @@ const GenericForm = ({
   selectedOption,
   modalChildren,
   onAddCallBackAction,
-  setComboBoxSelectedOption
-  
+  setComboBoxSelectedOption,
 }: GenericFormProps) => {
-  console.log("🚀 ~ GenericForm ~ state:", state)
-
-
+  console.log("🚀 ~ GenericForm ~ state:", state);
 
   const renderComboBoxField = (field: GenericFormField) => {
-    // Implement ComboBox rendering logic here if needed
-    console.log('🚀 ~ renderComboBoxField ~ selectedOption:', selectedOption);
+    console.log("🚀 ~ renderComboBoxField ~ selectedOption:", selectedOption);
     return (
-      <div>
+      <>
         <Label htmlFor={field.name} className="mb-2">
           {field.label}
         </Label>
@@ -75,7 +83,7 @@ const GenericForm = ({
           selectedOption={selectedOption}
           setComboBoxSelectedOption={setComboBoxSelectedOption}
         />
-      </div>
+      </>
     );
   };
 
@@ -90,7 +98,7 @@ const GenericForm = ({
           name={field.name}
           type={field.type || "text"}
           placeholder={field.placeholder}
-          defaultValue={state[field.name] ?? field.defaultValue ?? ""}
+          defaultValue={field.defaultValue ?? ""}
           required={field.required}
           {...field.props}
         />
@@ -98,18 +106,89 @@ const GenericForm = ({
     );
   };
 
+  const renderSingleField = (field: GenericFormField) => {
+    if (field.type === "combobox") {
+      return renderComboBoxField(field);
+    }
+    return renderInputField(field);
+  };
+  const renderRowField = (rowField: GenericFormRowField) => {
+    // Filter out hidden fields to get the actual visible field count
+    const visibleFields = rowField.fields.filter((field) => !field.hidden);
+    const visibleFieldCount = visibleFields.length;
+
+    // Map visible field count to specific Tailwind classes
+    const getGridCols = (count: number) => {
+      switch (count) {
+        case 1:
+          return "grid-cols-1";
+        case 2:
+          return "grid-cols-2";
+        case 3:
+          return "grid-cols-3";
+        case 4:
+          return "grid-cols-4";
+        case 5:
+          return "grid-cols-5";
+        case 6:
+          return "grid-cols-6";
+        default:
+          return "grid-cols-2"; // fallback
+      }
+    };
+
+    // If no visible fields, don't render the grid at all
+    if (visibleFieldCount === 0) {
+      return (
+        <div style={{ display: "none" }}>
+          {rowField.fields.map((field) => (
+            <div key={field.name} style={{ display: "none" }}>
+              {renderSingleField(field)}
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    return (
+      <div
+        className={`grid ${getGridCols(visibleFieldCount)} gap-4 ${
+          rowField.className || ""
+        }`}
+      >
+        {rowField.fields.map((field) => {
+          if (field.hidden) {
+            // Render hidden fields outside the grid
+            return (
+              <div key={field.name} style={{ display: "none" }}>
+                {renderSingleField(field)}
+              </div>
+            );
+          }
+
+          // Render visible fields in the grid
+          return <div key={field.name}>{renderSingleField(field)}</div>;
+        })}
+      </div>
+    );
+  };
+
   const renderFields = () => {
-    return fields.map((field) => {
-      if (field.type === "combobox") {
+    return fields.map((fieldOrRow, index) => {
+      // Check if it's a row field
+      if ("type" in fieldOrRow && fieldOrRow.type === "row") {
         return (
-          <div key={field.name} style={field.hidden ? { display: "none" } : {}}>
-            {renderComboBoxField(field)}
+          <div key={`row-${index}`}>
+            {renderRowField(fieldOrRow as GenericFormRowField)}
           </div>
         );
       }
+
+      // Regular field
+      const field = fieldOrRow as GenericFormField;
       return (
         <div key={field.name} style={field.hidden ? { display: "none" } : {}}>
-          {renderInputField(field)}
+          {renderSingleField(field)}
         </div>
       );
     });

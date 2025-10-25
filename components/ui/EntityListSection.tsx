@@ -1,22 +1,13 @@
 import { Card, CardHeader, CardTitle, CardAction, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import DataTable, { Column } from "@/components/ui/table";
+import DataTable, { Column, DataTableProps } from "@/components/ui/table";
 import { Modal } from "@/components/ui/modal";
 
 export type EntityWithId = { id?: string | number, plate?: string };
 
-type EntityListSectionProps<T extends EntityWithId> = {
+type EntityListSectionProps<T extends EntityWithId> = DataTableProps<T> & {
   title: string;
   addButtonText: string;
-  isLoading: boolean;
-  data: T[];
-  columns: Column<T>[];
-  currentPage: number;
-  totalItems: number;
-  pageSize: number;
-  onPageChange: (page: number) => void;
-  onEdit: (row: T) => void;
-  onDelete: (row: T) => void;
   isModalOpen: boolean;
   setIsModalOpen: (open: boolean) => void;
   callBackActionWhenModalOpen?: () => void;
@@ -39,6 +30,8 @@ export function EntityListSection<T extends EntityWithId>({
   setIsModalOpen,
   callBackActionWhenModalOpen,
   modalContent,
+  hasNestedData,
+  renderNestedContent
 }: EntityListSectionProps<T>) {
   return (
     <section className="flex-1 p-4 lg:p-8">
@@ -70,6 +63,9 @@ export function EntityListSection<T extends EntityWithId>({
             onPageChange={onPageChange}
             onEdit={onEdit}
             onDelete={onDelete}
+            expandable={!!renderNestedContent}
+            hasNestedData={hasNestedData}
+            renderNestedContent={renderNestedContent}
           />
         </CardContent>
       </Card>

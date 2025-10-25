@@ -34,17 +34,21 @@ const ContainerForm = ({
 }: ContainerProps) => {
   console.log("🚀 ~ containerForm ~ state:", state)
   const containerFields = [
-    { name: "id", label: "ID", hidden: true },
+    ...(isEditing
+      ? [{ name: "id", label: "ID", hidden: true, defaultValue: state?.id }]
+      : []),
     {
       name: "name",
       label: "Nombre del contenedor",
       required: true,
       placeholder: "Nombre del Contenedor",
+      defaultValue: state?.name || "",
     },
     {
       name: "capacity",
       label: "Capacidad",
       required: true,
+      defaultValue: state?.capacity || 0,
       placeholder: "Capacidad del Contenedor",
       type: "number",
       min: 0,
@@ -54,6 +58,7 @@ const ContainerForm = ({
       label: "Unidad",
       required: true,
       placeholder: "Unidad de Medida",
+      defaultValue: state?.unit || "",
     },
   ];
   return (

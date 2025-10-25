@@ -5,6 +5,7 @@ import {
   text,
   timestamp,
   integer,
+  date,
   decimal
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
@@ -128,8 +129,6 @@ export type TeamDataWithMembers = Team & {
     user: Pick<User, 'id' | 'name' | 'email'>;
   })[];
 };
-export type Truck = typeof trucks.$inferSelect;
-export type NewTruck = typeof trucks.$inferInsert;
 export type Provider = typeof providers.$inferSelect;
 export type NewProvider = typeof providers.$inferInsert;
 export type Product = typeof products.$inferSelect;
@@ -138,10 +137,8 @@ export type NewProduct = typeof products.$inferInsert;
 // export type NewProductClassification = typeof productClassifications.$inferInsert;
 export type Container = typeof containers.$inferSelect;
 export type NewContainer = typeof containers.$inferInsert;
-export type Income = typeof incomes.$inferSelect;
-export type NewIncome = typeof incomes.$inferInsert;
-export type IncomeTruck = typeof incomeTrucks.$inferSelect;
-export type NewIncomeTruck = typeof incomeTrucks.$inferInsert;
+export type Income = typeof income.$inferSelect;
+export type NewIncome = typeof income.$inferInsert;
 export type IncomeDetail = typeof incomeDetails.$inferSelect;
 export type NewIncomeDetail = typeof incomeDetails.$inferInsert;
 export type Customer = typeof customers.$inferSelect;
@@ -172,9 +169,6 @@ export enum ActivityType {
   CREATE_PROVIDER = 'CREATE_PROVIDER',
   UPDATE_PROVIDER = 'UPDATE_PROVIDER',
   DELETE_PROVIDER = 'DELETE_PROVIDER',
-  CREATE_TRUCK = 'CREATE_TRUCK',
-  UPDATE_TRUCK = 'UPDATE_TRUCK',
-  DELETE_TRUCK = 'DELETE_TRUCK',
   CREATE_PRODUCT = 'CREATE_PRODUCT',
   UPDATE_PRODUCT = 'UPDATE_PRODUCT',
   DELETE_PRODUCT = 'DELETE_PRODUCT',
@@ -212,15 +206,6 @@ export const providers = pgTable('providers', {
   deletedAt: timestamp('deleted_at'),
 });
 
-export const trucks = pgTable('trucks', {
-  id: serial('id').primaryKey(),
-  plate: varchar('plate', { length: 20 }).notNull(),
-  ownerId: integer('owner_id').references(() => providers.id),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  deletedAt: timestamp('deleted_at'),
-});
-
 /* export const productClassifications = pgTable('product_classifications', {
   id: serial('id').primaryKey(),
   productId: integer('product_id').notNull().references(() => products.id),
@@ -251,20 +236,10 @@ export const products = pgTable('products', {
 });
 
 
-export const incomes = pgTable('incomes', {
+export const income = pgTable('income', {
   id: serial('id').primaryKey(),
-  date: timestamp('date').defaultNow().notNull(),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  deletedAt: timestamp('deleted_at'),
-});
-
-
-export const incomeTrucks = pgTable('income_trucks', {
-  id: serial('id').primaryKey(),
-  incomeId: integer('income_id').notNull().references(() => incomes.id),
-  truckId: integer('truck_id').notNull().references(() => trucks.id),
-  driverName: varchar('driver_name', { length: 100 }),
+  date: date('date').notNull(),
+  providerId: integer('provider_id').notNull().references(() => providers.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
   deletedAt: timestamp('deleted_at'),
@@ -272,11 +247,9 @@ export const incomeTrucks = pgTable('income_trucks', {
 
 export const incomeDetails = pgTable('income_details', {
   id: serial('id').primaryKey(),
-  incomeTruckId: integer('income_truck_id').notNull().references(() => incomeTrucks.id),
-  providerId: integer('provider_id').notNull().references(() => providers.id),
+  incomeId: integer('income_id').notNull().references(() => income.id),
   productId: integer('product_id').notNull().references(() => products.id),
   // classificationId: integer('classification_id').notNull().references(() => productClassifications.id),
-  containerId: integer('container_id').notNull().references(() => containers.id),
   quantity: decimal('quantity', { precision: 10, scale: 2 }).notNull(),
   price: decimal('price', { precision: 10, scale: 2 }).notNull(),
   createdBy: integer('created_by').references(() => users.id),

@@ -20,6 +20,7 @@ import ContainerForm, {
   ContainerActionState,
 } from "@/components/ui/forms/containerForm";
 
+export type ProductRow = Product & { containerId?: string | number };
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function ProductsPage() {
@@ -27,7 +28,7 @@ export default function ProductsPage() {
     data: products,
     error,
     isLoading,
-  } = useSWR<Product[]>("/api/product", fetcher);
+  } = useSWR<ProductRow[]>("/api/product", fetcher);
 
   const {
     data: containers,
@@ -35,7 +36,9 @@ export default function ProductsPage() {
     isLoading: isLoadingContainers,
   } = useSWR<Container[]>("/api/container", fetcher);
 
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<ProductRow | null>(
+    null
+  );
   const [selectedContainer, setSelectedContainer] = useState<Container | null>(
     null
   );
@@ -50,8 +53,30 @@ export default function ProductsPage() {
     name: string;
   } | null>(null);
   // Cambia la función de acción según el modo
-  const actionFn = isEditing ? updateProduct : addProduct;
-  const actionFnContainer = isContainerEditing ? updateContainer : addContainer;
+  const defaultProductActionFn: (state: ProductActionState, payload: FormData) => ProductActionState | Promise<ProductActionState> = async (state, payload) => state;
+  const [actionFn, setActionFn] =
+    useState<(state: ProductActionState, payload: FormData) => ProductActionState | Promise<ProductActionState>>(defaultProductActionFn);
+
+  useEffect(() => {
+    if (isEditing) {
+      setActionFn(() => updateProduct);
+    } else {
+      setActionFn(() => addProduct);
+    }
+  }, [isEditing]);
+  const defaultContainerActionFn: (state: ContainerActionState, payload: FormData) => ContainerActionState | Promise<ContainerActionState> = async (state, payload) => state;
+  const [actionFnContainer, setActionFnContainer] =
+    useState<(state: ContainerActionState, payload: FormData) => ContainerActionState | Promise<ContainerActionState>>(defaultContainerActionFn);
+    useState<(prevState: any, formData: FormData) => Promise<any>>();
+
+  useEffect(() => {
+    if (isContainerEditing) {
+      setActionFnContainer(() => updateContainer);
+    } else {
+      setActionFnContainer(() => addContainer);
+    }
+  }, [isContainerEditing]);
+
   const [initialState, setInitialState] = useState({});
   const [containerInitialState, setContainerInitialState] = useState({});
   useEffect(() => {
@@ -104,12 +129,14 @@ export default function ProductsPage() {
       );
       setSelectedProduct(null);
       setIsEditing(false);
+      setComboBoxSelectedOption(null);
+      setInitialState({});
     }
   }, [state]);
 
   useEffect(() => {
-if (stateContainer?.success) {
-      console.log('container actualizad o agregado ', stateContainer)
+    if (stateContainer?.success) {
+      console.log("container actualizad o agregado ", stateContainer);
       mutate("/api/container"); // Refresca contenedores con SWR
       addToast(
         isContainerEditing ? "Contenedor actualizado" : "Contenedor agregado",
@@ -117,8 +144,9 @@ if (stateContainer?.success) {
       );
       setIsContainerModalOpen(false);
       setIsContainerEditing(false);
+      setContainerInitialState({})
     }
-  }, [stateContainer])
+  }, [stateContainer]);
   console.log("🚀 ~ ProductsPage ~ initialState:", initialState);
 
   const addNewProductComponent = (state: ProductActionState) => {
@@ -127,6 +155,8 @@ if (stateContainer?.success) {
       <ProductOrContainerForm
         formAction={formAction}
         state={state}
+        selectedOption={comboBoxSelectedOption}
+        setComboBoxSelectedOption={setComboBoxSelectedOption}
         isPending={isPending}
         isEditing={isEditing}
         setIsModalOpen={setIsModalOpen}
@@ -134,8 +164,6 @@ if (stateContainer?.success) {
         data={
           containers ? containers.map((c) => ({ id: c.id, name: c.name })) : []
         }
-        setComboBoxSelectedOption={setComboBoxSelectedOption}
-        selectedOption={comboBoxSelectedOption}
         modalChildren={addNewContainerComponent(stateContainer)}
         onAddCallBackAction={() => {
           // Aquí puedes manejar la acción de agregar un nuevo proveedor
@@ -219,13 +247,20 @@ if (stateContainer?.success) {
         modalContent={addNewContainerComponent(
           isContainerEditing
             ? (selectedContainer as any as ContainerActionState)
-            : stateContainer
+            : {}
         )}
         callBackActionWhenModalOpen={() => {
           setSelectedContainer(null);
+          setIsContainerEditing(false);
+          setContainerInitialState({
+            id: null,
+            name: "",
+            capacity: "",
+            unit: "",
+          });
         }}
       />
-      <EntityListSection<Product>
+      <EntityListSection<ProductRow>
         title="Productos"
         addButtonText="Agregar nuevo Producto"
         isLoading={isLoading}
@@ -241,6 +276,11 @@ if (stateContainer?.success) {
         onEdit={(product) => {
           setSelectedProduct(product);
           setIsEditing(true);
+          setComboBoxSelectedOption({
+            id: product.container ?? -1,
+            name:
+              containers?.find((c) => c.id === product.containerId)?.name || "",
+          });
           setIsModalOpen(true);
           console.log("product", product);
         }}
@@ -248,8 +288,14 @@ if (stateContainer?.success) {
         isModalOpen={isModalOpen}
         setIsModalOpen={setIsModalOpen}
         modalContent={addNewProductComponent(
-          isEditing ? (selectedProduct as any as ProductActionState) : state
+          isEditing ? (selectedProduct as any as ProductActionState) : {}
         )}
+        callBackActionWhenModalOpen={() => {
+          setComboBoxSelectedOption(null); // Clear the selected option
+          setSelectedProduct(null); // Clear the selected product
+          setInitialState({}); // Reset the initial state
+          setIsEditing(false); // Set editing to false
+        }}
       />
     </>
   );

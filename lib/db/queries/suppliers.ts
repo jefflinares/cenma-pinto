@@ -1,4 +1,4 @@
-import { isNull, desc } from "drizzle-orm";
+import { isNull, desc, eq, and } from "drizzle-orm";
 import { db } from "../drizzle";
 import { providers as providersTable } from "../schema";
 import { validateSession } from "./util";
@@ -15,7 +15,8 @@ export async function getSuppliers() {
         .where(isNull(providersTable.deletedAt)) // Filter out soft-deleted suppliers
         .orderBy(desc(providersTable.createdAt)); // Order by creation date
 
-    console.log('Suppliers: ', suppliers)
+    console.log('Suppliers: ', suppliers);
+  
     if (suppliers.length === 0) {
         return [];
     }

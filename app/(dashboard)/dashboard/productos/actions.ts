@@ -8,6 +8,7 @@ import {
   type NewProduct,
   ActivityType,
   containers,
+  incomeDetails,
 } from "@/lib/db/schema";
 import { validatedActionWithUser } from "@/lib/auth/middleware";
 import { logActivity } from "@/app/(login)/actions";
@@ -190,7 +191,19 @@ export const deleteProduct = validatedActionWithUser(
   async (data, _, user) => {
     const { id } = data;
     try {
-      // debugger
+      // Identify if thee product is associated with any income records
+      const associatedIncomes = await db
+        .select()
+        .from(incomeDetails)
+        .where(
+          and(eq(incomeDetails.productId, id), isNull(incomeDetails.deletedAt))
+        );
+      if (associatedIncomes.length > 0) {
+        throw new Error(
+          "No se puede eliminar el producto porque está asociado a registros de ingresos."
+        );
+      }
+
       const [product] = await db
         .update(products)
         .set({ deletedAt: sql`now()` })
@@ -224,10 +237,7 @@ export const deleteContainer = validatedActionWithUser(
       const associatedProducts = await db
         .select()
         .from(products)
-        .where(and(
-          eq(products.container, id), 
-          isNull(products.deletedAt))
-        );
+        .where(and(eq(products.container, id), isNull(products.deletedAt)));
 
       if (associatedProducts.length > 0) {
         throw new Error(

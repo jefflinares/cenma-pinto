@@ -78,6 +78,34 @@
       "when": 1759216932573,
       "tag": "0010_luxuriant_radioactive_man",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1759803557915,
+      "tag": "0011_round_bruce_banner",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1761349520112,
+      "tag": "0012_fantastic_black_knight",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1761350098281,
+      "tag": "0013_rare_marvel_boy",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1761352685778,
+      "tag": "0014_shiny_guardian",
+      "breakpoints": true
     }
   ]
 }

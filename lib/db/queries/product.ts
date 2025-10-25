@@ -13,7 +13,8 @@ export async function getProducts() {
         .select({
             id: productsTable.id,
             name: productsTable.name,
-            container: containersTable.name
+            container: containersTable.name,
+            containerId: productsTable.container
         })
         .from(productsTable)
         .innerJoin(containersTable, eq(containersTable.id, productsTable.container))

@@ -1,11 +1,13 @@
 import React from "react";
 import GenericForm, { GenericFormState, GenericFormField } from "./GenericForm";
+import { TruckActionState } from "./truck";
 
 export type SupplierActionState = {
   id?: string | number;
   name: string;
   phone?: string;
   address?: string;
+  trucks?: TruckActionState[];
   error?: string;
   success?: string;
 };
@@ -19,25 +21,6 @@ type SupplierProps = {
   setIsEditing: (editing: boolean) => void;
 };
 
-const supplierFields: GenericFormField[] = [
-  { name: "id", label: "ID", hidden: true },
-  {
-    name: "name",
-    label: "Nombre",
-    required: true,
-    placeholder: "Nombre Proveedor",
-  },
-  {
-    name: "phone",
-    label: "Teléfono",
-    required: true,
-    type: "tel",
-    placeholder: "Teléfono Proveedor",
-    props: { pattern: "[0-9]{8}", maxLength: 8, inputMode: "numeric" },
-  },
-  { name: "address", label: "Dirección", placeholder: "Dirección Proveedor" },
-];
-
 const Supplier = ({
   formAction,
   state,
@@ -46,6 +29,35 @@ const Supplier = ({
   setIsModalOpen,
   setIsEditing,
 }: SupplierProps) => {
+  const supplierFields: GenericFormField[] = [
+    ...(isEditing
+      ? [{ name: "id", label: "ID", hidden: true, defaultValue: state?.id }]
+      : []),
+    {
+      name: "name",
+      label: "Nombre",
+      required: true,
+      placeholder: "Nombre Proveedor",
+      defaultValue: state?.name || "",
+    },
+    {
+      name: "phone",
+      label: "Teléfono",
+      required: true,
+      type: "tel",
+      placeholder: "Teléfono Proveedor",
+      props: { pattern: "[0-9]{8}", maxLength: 8, inputMode: "numeric" },
+      defaultValue: state?.phone || "",
+    },
+    {
+      name: "address",
+      label: "Dirección",
+      placeholder: "Dirección Proveedor",
+      defaultValue: state?.address || "",
+    },
+  ];
+  console.log("🚀 ~ Supplier ~ supplierFields:", supplierFields, 'state: ', state, formAction)
+
   return (
     <GenericForm
       fields={supplierFields}

@@ -3,9 +3,15 @@ import { logActivity } from "@/app/(login)/actions";
 import { validatedActionWithUser } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/drizzle";
 
-import { ActivityType, providers, trucks } from "@/lib/db/schema";
-import { eq, sql } from "drizzle-orm";
+import {
+  ActivityType,
+  income as incomeTable,
+  incomeDetails,
+  providers,
+} from "@/lib/db/schema";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
+import { extractProductsIds } from "./util";
 
 // Define the supplier schema (adjust fields as needed)
 const supplierSchema = z.object({
@@ -101,18 +107,19 @@ export const deleteSupplier = validatedActionWithUser(
   async (data, _, user) => {
     const { id } = data;
     try {
-      // Verify if there are no trucks associated with the supplier
-      const associatedTrucks = await db
+      // Verify if there are no income associated with the supplier
+      const associatedIncome = await db
         .select()
-        .from(trucks)
-        .where(eq(trucks.ownerId, id))
+        .from(incomeTable)
+        .where(eq(incomeTable.providerId, id))
         .limit(1);
 
-      if (associatedTrucks.length > 0) {
+      if (associatedIncome.length > 0) {
         throw new Error(
-          "No se puede eliminar el proveedor porque tiene camiones asociados."
+          "No se puede eliminar el proveedor porque tiene ingresos asociados."
         );
       }
+
       const [supplier] = await db
         .update(providers)
         .set({ deletedAt: sql`now()` })
@@ -133,120 +140,181 @@ export const deleteSupplier = validatedActionWithUser(
   }
 );
 
+const incomeSchema = z
+  .object({
+    date: z
+      .string()
+      .min(1),
+    providerId: z.string().min(1).transform(Number),
+  })
+  .passthrough(); // This allows extra fields to pass through
 
-const truckSchema = z.object({
-  plate: z.string().min(1),
-  ownerId: z.string().min(1).transform(Number),
-});
-
-export const addTruck = validatedActionWithUser(
-  truckSchema,
+export const addIncome = validatedActionWithUser(
+  incomeSchema,
   async (data, _, user) => {
-    const { plate, ownerId } = data;
-    console.log("🚀 ~ data:", data)
-    try {
-      const newTruck = await db
-        .insert(trucks)
-        .values({
-          plate,
-          ownerId,
-        })
-        .returning();
+    debugger;
+    const { date, truckId, driverName, providerId, ...rest } = data;
 
-      if (!newTruck) {
-        throw new Error("Failed to create truck");
+    const products = extractProductsIds(rest);
+    console.log("🚀 ~ products:", products);
+    console.log("🚀 ~ data:", data);
+
+    try {
+      // Start a transaction to insert income and income details with products
+      const result = await db.transaction(async (tx) => {
+        // Insert the income record
+        const [newIncome] = await tx
+          .insert(incomeTable)
+          .values({
+            date,
+            providerId,
+          })
+          .returning();
+
+        // Insert product records if any
+        if (products.length > 0) {
+          await tx.insert(incomeDetails).values(
+            products.map((p) => ({
+              incomeId: newIncome.id,
+              productId: p.productId,
+              quantity: String(p.quantity),
+              price: "0",
+              createdBy: user.id,
+            }))
+          );
+        }
+
+        return newIncome;
+      });
+
+      if (!result) {
+        throw new Error("Failed to create income");
       }
-      // TODO teamId should not be hardcoded
+
       const teamId = 1;
-      await logActivity(teamId, user.id, ActivityType.CREATE_TRUCK);
-      return { ...newTruck, success: "Camión creado correctamente" };
+      await logActivity(teamId, user.id, ActivityType.CREATE_INCOME);
+      return {
+        ...result,
+        date: result.date,
+        success: "Ingreso creado correctamente",
+      };
     } catch (error: any) {
-      console.error("Error creating truck:", error);
-      if (error?.code === '23505') { // Unique violation error code for PostgreSQL
+      console.error("Error creating income:", error);
+      if (error?.code === "23505") {
         return {
-          error: `Ya existe un camión con la placa "${plate}".`,
-          plate,
+          error: `Ya existe un ingreso con la fecha "${date}".`,
+          date,
         };
       }
       return {
         error:
-          "Error al crear el camión. Por favor, inténtelo de nuevo." + error,
-        plate,
+          "Error al crear el ingreso. Por favor, inténtelo de nuevo." + error,
+        truckId,
+        driverName,
       };
     }
   }
 );
 
+const updateIncomeSchema = z
+  .object({
+    id: z.string().min(1).transform(Number),
+    date: z
+      .string()
+      .min(1),
+      //.transform((date) => new Date(date)),
+    providerId: z.string().min(1).transform(Number),
+  })
+  .passthrough(); // This allows extra fields to pass through
 
-const updateTruckSchema = z.object({
-  id: z.string().min(1).transform(Number),
-  plate: z.string().min(1),
-  ownerId: z.string().min(1).transform(Number),
-});
-
-export const updateTruck = validatedActionWithUser(
-  updateTruckSchema,
+export const updateIncome = validatedActionWithUser(
+  updateIncomeSchema,
   async (data, _, user) => {
-    console.log("🚀 ~ updateTruck data:", data)
-    const { id, plate, ownerId } = data;
+    console.log("🚀 ~ updateIncome data:", data);
+    const { id, date, providerId, ...rest } = data;
     try {
-      const updatedTruck = await db
-        .update(trucks)
-        .set({
-          plate,
-          ownerId,
-        })
-        .where(eq(trucks.id, id))
-        .returning();
+      const products = extractProductsIds(rest);
+      // Start a transaction to insert income and income details with products
+      const result = await db.transaction(async (tx) => {
+        const updatedIncome = await db
+          .update(incomeTable)
+          .set({
+            date,
+            providerId,
+          })
+          .where(eq(incomeTable.id, id))
+          .returning();
 
-      if (!updatedTruck) {
-        throw new Error("Failed to update truck");
-      }
+        if (!updatedIncome) {
+          throw new Error("Failed to update income");
+        }
+        // Insert product records if any
+        if (products.length > 0) {
+          await Promise.all(
+            products.map((p) =>
+              tx
+                .update(incomeDetails)
+                .set({
+                  quantity: String(p.quantity),
+                  price: "0",
+                  createdBy: user.id,
+                })
+                .where(
+                  and(
+                    eq(incomeDetails.incomeId, updatedIncome[0].id),
+                    eq(incomeDetails.productId, p.productId)
+                  )
+                )
+            )
+          );
+        }
+        return updatedIncome;
+      });
 
       const teamId = 1;
-      await logActivity(teamId, user.id, ActivityType.UPDATE_TRUCK);
+      await logActivity(teamId, user.id, ActivityType.UPDATE_INCOME);
       return {
-        ...updatedTruck,
-        success: "Camión actualizado correctamente",
+        ...result,
+
+        date: result[0].date,
+        success: "Ingreso actualizado correctamente",
       };
     } catch (error) {
-      console.error("Error updating truck:", error);
+      console.error("Error updating income:", error);
 
       return {
         error:
-          "Error al actualizar el camión. Por favor, inténtelo de nuevo." +
+          "Error al actualizar el ingreso. Por favor, inténtelo de nuevo." +
           error,
-        plate,
+        date,
       };
     }
   }
 );
 
-const deleteTruckSchema = z.object({
+const deleteIncomeSchema = z.object({
   id: z.string().min(1).transform(Number),
 });
 
-export const deleteTruck = validatedActionWithUser(
-  deleteTruckSchema,
+export const deleteIncome = validatedActionWithUser(
+  deleteIncomeSchema,
   async (data, _, user) => {
     const { id } = data;
     try {
-      
-
-      const [truck] = await db
-        .update(trucks)
+      const [income] = await db
+        .update(incomeTable)
         .set({ deletedAt: sql`now()` })
-        .where(eq(trucks.id, id))
+        .where(eq(incomeTable.id, id))
         .returning();
-      if (!truck) {
-        throw new Error("Failed to delete truck");
+      if (!income) {
+        throw new Error("Failed to delete income");
       }
-      return { id, success: "Camión eliminado correctamente" };
+      return { id, success: "Ingreso eliminado correctamente" };
     } catch (error: any) {
-      console.log("🚀 ~ error deleting truck:", error);
+      console.log("🚀 ~ error deleting income:", error);
       return {
         error:
-          "Error al eliminar el camión. Por favor, inténtelo de nuevo." +
+          "Error al eliminar el ingreso. Por favor, inténtelo de nuevo." +
           error,
       };
     }
