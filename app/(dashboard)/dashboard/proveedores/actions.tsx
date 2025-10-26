@@ -8,6 +8,7 @@ import {
   income as incomeTable,
   incomeDetails,
   providers,
+  products as productsTable,
 } from "@/lib/db/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -156,8 +157,7 @@ export const addIncome = validatedActionWithUser(
     const { date, truckId, driverName, providerId, ...rest } = data;
 
     const products = extractProductsIds(rest);
-    console.log("🚀 ~ products:", products);
-    console.log("🚀 ~ data:", data);
+    console.log("🚀 ~ addIncome products:", products);
 
     try {
       // Start a transaction to insert income and income details with products
@@ -248,6 +248,15 @@ export const updateIncome = validatedActionWithUser(
         if (!updatedIncome) {
           throw new Error("Failed to update income");
         }
+        // Verify if there are new products added
+        const existingProductIds = products.map((p) => p.productId);
+        const productsQuery = await tx.select()
+          .from(productsTable);
+          // TODO: filter by existingProductIds only
+          if (productsQuery.length !== existingProductIds.length) {
+            // We need to add new products instead of updating them
+            
+          }
         // Insert product records if any
         if (products.length > 0) {
           await Promise.all(

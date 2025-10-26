@@ -1,6 +1,4 @@
 export const extractProductsIds = (rest: Record<string, any>) => {
-  // Extract productId fields
-
   const products: { productId: number; quantity: number }[] = [];
 
   // Process dynamic product fields
@@ -19,13 +17,10 @@ export const extractProductsIds = (rest: Record<string, any>) => {
 
   // Combine productIds and quantities
   Object.keys(productIds).forEach((id) => {
-    if (quantities[id] && quantities[id] > 0) {
-      // Only include if quantity > 0
-      products.push({
-        productId: productIds[id],
-        quantity: quantities[id],
-      });
-    }
+    products.push({
+      productId: productIds[id],
+      quantity: quantities[id],
+    });
   });
 
   return products;

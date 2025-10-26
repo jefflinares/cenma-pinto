@@ -36,10 +36,11 @@ type ValidatedActionWithUserFunction<S extends z.ZodType<any, any>, T> = (
 
 export function validatedActionWithUser<S extends z.ZodType<any, any>, T>(
   schema: S,
-  action: ValidatedActionWithUserFunction<S, T>
+  action: ValidatedActionWithUserFunction<S, T>,
+  name?: string
 ) {
   return async (prevState: ActionState, formData: FormData) => {
-    console.log("🚀 ~ validatedActionWithUser ~ formData:", formData)
+    console.log("🚀 ~ validatedActionWithUser ~ formData:", formData, 'name: ', name)
     const user = await getUser();
     if (!user) {
       throw new Error('User is not authenticated');

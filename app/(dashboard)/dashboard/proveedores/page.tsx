@@ -1,7 +1,6 @@
 "use client";
-import { useActionState, useEffect, useState } from "react";
+import { useState } from "react";
 import { Income, IncomeDetail, Provider } from "@/lib/db/schema";
-import useSWR, { mutate } from "swr";
 import SupplierForm, {
   SupplierActionState,
 } from "@/components/ui/forms/supplier";
@@ -11,8 +10,8 @@ import {
   deleteSupplier,
   updateIncome,
   addIncome,
+  deleteIncome,
 } from "./actions";
-import { useToast } from "@/components/ui/toast";
 import { EntityListSection } from "@/components/ui/EntityListSection";
 // import TruckForm, { TruckActionState } from "@/components/ui/forms/truck";
 import AddOrEditEntityComponent from "@/components/ui/forms/addOrEditForm";
@@ -21,6 +20,8 @@ import IncomeForm, {
 } from "@/components/ui/forms/incomeForm";
 import NestedTable from "@/components/ui/NestedTable";
 import { ProductRow } from "../productos/page";
+import { useEntityManager } from "@/components/hooks/useEntityManager";
+import { Entity } from "@/components/ui/comboBox";
 
 type ProviderRow = Provider;
 export type IncomeDetailRow = IncomeDetail & { productName?: string };
@@ -30,153 +31,69 @@ type IncomeRow = Income & {
   incomeDetails?: IncomeDetailRow[];
 };
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
-
 export default function SuppliersPage() {
-  const { data: suppliers = [], isLoading } = useSWR<ProviderRow[]>(
-    "/api/supplier",
-    fetcher
-  );
-  //console.log("🚀 ~ SuppliersPage ~ suppliers:", suppliers);
+  const [comboBoxSelectedOption, setComboBoxSelectedOption] =
+    useState<Entity | null>(null);
+
+  const {
+    data: suppliers,
+    isLoading,
+    selectedEntity: selectedSupplier,
+    setSelectedEntity: setSelectedSupplier,
+    isEditing,
+    setIsEditing,
+    isModalOpen,
+    setIsModalOpen,
+    setInitialState,
+    formAction: formActionSupplier,
+    isPending,
+    handleOnDelete: handleOnDeleteSupplier,
+  } = useEntityManager<ProviderRow>({
+    route: "/api/supplier",
+    addAction: addSupplier,
+    updateAction: updateSupplier,
+    deleteAction: deleteSupplier,
+    setComboBoxSelectedOption,
+    comboBoxSelectedOption,
+    entityName: "Proveedor",
+  });
 
   const {
     data: incomes,
     error: errorIncomes,
     isLoading: isLoadingIncomes,
-  } = useSWR<IncomeRow[]>("/api/incomes", fetcher);
+    selectedEntity: selectedIncome,
+    setSelectedEntity: setSelectedIncome,
+    isEditing: isIncomeEditing,
+    setIsEditing: setIsIncomeEditing,
+    isModalOpen: isIncomeModalOpen,
+    setIsModalOpen: setIsIncomeModalOpen,
+    setInitialState: setIncomeInitialState,
+    formAction: formActionIncomes,
+    handleOnDelete: handleOnDeleteIncome,
+  } = useEntityManager<IncomeRow>({
+    route: "/api/incomes",
+    addAction: addIncome,
+    updateAction: updateIncome,
+    deleteAction: deleteIncome,
+    setComboBoxSelectedOption,
+    comboBoxSelectedOption,
+    entityName: "Ingreso",
+  });
 
   const {
     data: productsData,
     error: errorProducts,
     isLoading: isLoadingProducts,
-  } = useSWR<ProductRow[]>("/api/product", fetcher);
-  //console.log("🚀 ~ SuppliersPage ~ productsData:", productsData);
-
-  const { addToast } = useToast();
-
-  const [selectedSupplier, setSelectedSupplier] = useState<ProviderRow | null>(
-    null
-  );
-  const [selectedIncome, setSelectedIncome] = useState<IncomeRow | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-
-  const [isIncomeEditing, setIsIncomeEditing] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
-
-  const [comboBoxSelectedOption, setComboBoxSelectedOption] = useState<{
-    id: string | number;
-    name: string;
-  } | null>(null);
-
-  const [actionFn, setActionFn] = useState<
-    ((prevState: any, formData: FormData) => Promise<any>)
-  >();
-
-  // Cambia la función de acción según el modo
-  useEffect(() => {
-    if (isEditing) {
-      setActionFn(() => updateSupplier);
-    } else {
-      setActionFn(() => addSupplier);
-    }
-  }, [isEditing]);
-
-  const [actionFnIncomes, setActionFnIncomes] = useState<
-    ((prevState: any, formData: FormData) => Promise<any>)
-  >();
-
-  useEffect(() => {
-    if (isIncomeEditing) {
-      setActionFnIncomes(() => updateIncome);
-    } else {
-      setActionFnIncomes(() => addIncome);
-    }
-  }, [isIncomeEditing]);
-
-  const [initialState, setInitialState] = useState({});
-  const [incomeInitialState, setIncomeInitialState] = useState({});
-
-  useEffect(() => {
-    if (isEditing) {
-      const initialState =
-        isEditing && selectedSupplier
-          ? {
-              id: selectedSupplier.id,
-              name: selectedSupplier.name,
-              phone: selectedSupplier.phone,
-              address: selectedSupplier.address,
-            }
-          : {};
-      setInitialState(initialState);
-    }
-  }, [isEditing, selectedSupplier]);
-
-  const [stateSupplier, formActionSupplier, isPending] = useActionState<
-    SupplierActionState,
-    FormData
-  >(actionFn, initialState);
-
-  const [stateIncomes, formActionIncomes, isPendingIncomes] = useActionState<
-    IncomeActionState,
-    FormData
-  >(actionFnIncomes, incomeInitialState);
-
-  // Al finalizar la acción:
-  useEffect(() => {
-    if (stateSupplier?.success) {
-      mutate("/api/supplier"); // Refresca proveedores con SWR
-
-      addToast(
-        isEditing ? "Proveedor actualizado" : "Proveedor agregado",
-        "success"
-      );
-      setIsModalOpen(false);
-      setIsEditing(false);
-    } else if (stateSupplier?.error) {
-      addToast(stateSupplier.error, "error");
-    }
-  }, [stateSupplier]);
-
-  useEffect(() => {
-    if (stateIncomes?.success) {
-      mutate("/api/incomes"); // Refresca camiones con SWR
-      addToast(
-        isIncomeEditing ? "Ingreso actualizado" : "Ingreso agregado",
-        "success"
-      );
-      setIsIncomeModalOpen(false);
-      setIsIncomeEditing(false);
-      setIncomeInitialState({});
-      setSelectedIncome(null);
-    } else if (stateIncomes?.error) {
-      addToast(stateIncomes.error, "error");
-    }
-  }, [stateIncomes]);
-
-  const handleOnDelete = async (
-    id: string | number,
-    supplier: boolean = true
-  ) => {
-    if (supplier) {
-      try {
-        const formData = new FormData();
-        formData.append("id", String(id));
-        const response = await deleteSupplier({ id }, formData);
-        console.log("🚀 ~ handleOnDelete ~ response:", response);
-        if (response.error) {
-          addToast(response.error, "error", 5000);
-          return;
-        }
-        addToast("Proveedor eliminado", "success");
-        mutate("/api/supplier");
-      } catch (error) {
-        console.error("Error deleting proveedor:", error);
-      }
-    } else {
-    }
-  };
+  } = useEntityManager<ProductRow>({
+    route: "/api/product",
+    addAction: async (state, payload) => state,
+    updateAction: async (state, payload) => state,
+    deleteAction: async (state, payload) => state,
+    setComboBoxSelectedOption,
+    comboBoxSelectedOption,
+    entityName: "Producto",
+  });
 
   const addNewSupplier = (
     state: SupplierActionState,
@@ -263,20 +180,22 @@ export default function SuppliersPage() {
           setIsEditing(true);
           setIsModalOpen(true);
         }}
-        onDelete={({ id }) => handleOnDelete(Number(id))}
+        onDelete={({ id }) => handleOnDeleteSupplier(Number(id))}
         isModalOpen={isModalOpen}
         setIsModalOpen={setIsModalOpen}
         modalContent={addNewSupplier(
           isEditing
             ? (selectedSupplier as any as SupplierActionState)
-            : {} as any,
+            : ({} as any),
           formActionSupplier
         )}
         callBackActionWhenModalOpen={() => {
-          console.log('reset selected supplier and initial state when modal opens');
-          setIsEditing(false)
+          console.log(
+            "reset selected supplier and initial state when modal opens"
+          );
+          setIsEditing(false);
           setSelectedSupplier(null);
-          setInitialState({ });
+          setInitialState({ name: "" });
         }}
       />
 
@@ -299,12 +218,14 @@ export default function SuppliersPage() {
           setIsIncomeEditing(true);
           setComboBoxSelectedOption({
             id: income.providerId ?? -1,
-            name: incomes?.find((t) => t.providerId === income.providerId)?.providerName || "",
+            name:
+              incomes?.find((t) => t.providerId === income.providerId)
+                ?.providerName || "",
           });
           setIsIncomeModalOpen(true);
         }}
         onDelete={({ id }) => {
-          handleOnDelete(id, false);
+          handleOnDeleteIncome(id);
         }}
         isModalOpen={isIncomeModalOpen}
         setIsModalOpen={setIsIncomeModalOpen}
@@ -312,7 +233,7 @@ export default function SuppliersPage() {
           console.log(
             "callback para resetear el comboBoxSelectedOption y evitar que quede el último seleccionado aparezca en el formulario del truck"
           );
-          setIsIncomeEditing(false)
+          setIsIncomeEditing(false);
           setComboBoxSelectedOption(null);
           setSelectedIncome(null);
           setIncomeInitialState({});
@@ -320,7 +241,7 @@ export default function SuppliersPage() {
         modalContent={addNewIncome(
           isIncomeEditing
             ? (selectedIncome as any as IncomeActionState)
-            : {} as any,
+            : ({} as any),
           formActionIncomes
         )}
         hasNestedData={(income: IncomeRow) => {
