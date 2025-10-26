@@ -16,8 +16,8 @@ export type IncomeActionState = {
 
 type IncomeProps = ComboBoxWithModalProps & {
   formAction: (formData: FormData) => void | Promise<void>;
-  productsData: Entity[];
-  providersData?: ProductRow[];
+  productsData: Entity[] | undefined;
+  providersData?: Entity[]  | undefined;
   state: IncomeActionState;
   isPending: boolean;
   isEditing: boolean;

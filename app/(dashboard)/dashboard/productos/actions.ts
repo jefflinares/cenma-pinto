@@ -60,7 +60,8 @@ export const addProduct = validatedActionWithUser(
     const teamId = 1;
     await logActivity(teamId, user.id, ActivityType.CREATE_PRODUCT);
     return { name, success: "Producto creado correctamente" };
-  }
+  },
+  'addProduct'
 );
 
 const containerSchema = z.object({
@@ -104,7 +105,8 @@ export const addContainer = validatedActionWithUser(
     const teamId = 1;
     await logActivity(teamId, user.id, ActivityType.CREATE_CONTAINER);
     return { name, success: "Contenedor creado correctamente" };
-  }
+  },
+  'addContainer'
 );
 
 const updateProductSchema = z.object({
@@ -141,7 +143,8 @@ export const updateProduct = validatedActionWithUser(
         name,
       };
     }
-  }
+  },
+  'updateProduct'
 );
 
 const updateContainerSchema = z.object({
@@ -179,7 +182,8 @@ export const updateContainer = validatedActionWithUser(
         name,
       };
     }
-  }
+  },
+  'updateContainer'
 );
 
 const deleteProductSchema = z.object({
@@ -221,7 +225,8 @@ export const deleteProduct = validatedActionWithUser(
           error,
       };
     }
-  }
+  },
+  'deleteProduct'
 );
 
 const deleteContainerSchema = z.object({
@@ -262,5 +267,6 @@ export const deleteContainer = validatedActionWithUser(
           error,
       };
     }
-  }
+  },
+  'deleteContainer'
 );

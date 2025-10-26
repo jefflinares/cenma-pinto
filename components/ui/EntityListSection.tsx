@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import DataTable, { Column, DataTableProps } from "@/components/ui/table";
 import { Modal } from "@/components/ui/modal";
 
-export type EntityWithId = { id?: string | number, plate?: string };
+export type EntityWithId = { id?: string | number };
 
 type EntityListSectionProps<T extends EntityWithId> = DataTableProps<T> & {
   title: string;

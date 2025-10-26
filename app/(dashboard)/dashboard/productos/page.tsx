@@ -1,9 +1,8 @@
 "use client";
-import { useActionState, useEffect, useState } from "react";
+import { useState } from "react";
 import ProductOrContainerForm, {
   ProductActionState,
 } from "@/components/ui/forms/product";
-import useSWR, { mutate } from "swr";
 import {
   addContainer,
   addProduct,
@@ -13,141 +12,69 @@ import {
   updateProduct,
 } from "./actions";
 import { Container, Product } from "@/lib/db/schema";
-import { useToast } from "@/components/ui/toast";
 import { EntityListSection } from "@/components/ui/EntityListSection";
 import AddOrEditEntityComponent from "@/components/ui/forms/addOrEditForm";
 import ContainerForm, {
   ContainerActionState,
 } from "@/components/ui/forms/containerForm";
+import { useEntityManager } from "@/components/hooks/useEntityManager";
+import { Entity } from "@/components/ui/comboBox";
 
 export type ProductRow = Product & { containerId?: string | number };
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function ProductsPage() {
+  const [comboBoxSelectedOption, setComboBoxSelectedOption] =
+    useState<Entity | null>(null);
   const {
     data: products,
     error,
     isLoading,
-  } = useSWR<ProductRow[]>("/api/product", fetcher);
+    selectedEntity: selectedProduct,
+    setSelectedEntity: setSelectedProduct,
+    isEditing,
+    setIsEditing,
+    isModalOpen,
+    setIsModalOpen,
+    initialState,
+    setInitialState,
+    formAction,
+    isPending,
+    handleOnDelete: handleOnDeleteProduct,
+  } = useEntityManager<ProductRow>({
+    route: "/api/product",
+    addAction: addProduct,
+    updateAction: updateProduct,
+    deleteAction: deleteProduct,
+    setComboBoxSelectedOption,
+    comboBoxSelectedOption,
+    entityName: "Producto",
+  });
 
   const {
     data: containers,
     error: errorContainers,
     isLoading: isLoadingContainers,
-  } = useSWR<Container[]>("/api/container", fetcher);
-
-  const [selectedProduct, setSelectedProduct] = useState<ProductRow | null>(
-    null
-  );
-  const [selectedContainer, setSelectedContainer] = useState<Container | null>(
-    null
-  );
-
-  const [isEditing, setIsEditing] = useState(false);
-  const [isContainerEditing, setIsContainerEditing] = useState(false);
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isContainerModalOpen, setIsContainerModalOpen] = useState(false);
-  const [comboBoxSelectedOption, setComboBoxSelectedOption] = useState<{
-    id: string | number;
-    name: string;
-  } | null>(null);
-  // Cambia la función de acción según el modo
-  const defaultProductActionFn: (state: ProductActionState, payload: FormData) => ProductActionState | Promise<ProductActionState> = async (state, payload) => state;
-  const [actionFn, setActionFn] =
-    useState<(state: ProductActionState, payload: FormData) => ProductActionState | Promise<ProductActionState>>(defaultProductActionFn);
-
-  useEffect(() => {
-    if (isEditing) {
-      setActionFn(() => updateProduct);
-    } else {
-      setActionFn(() => addProduct);
-    }
-  }, [isEditing]);
-  const defaultContainerActionFn: (state: ContainerActionState, payload: FormData) => ContainerActionState | Promise<ContainerActionState> = async (state, payload) => state;
-  const [actionFnContainer, setActionFnContainer] =
-    useState<(state: ContainerActionState, payload: FormData) => ContainerActionState | Promise<ContainerActionState>>(defaultContainerActionFn);
-    useState<(prevState: any, formData: FormData) => Promise<any>>();
-
-  useEffect(() => {
-    if (isContainerEditing) {
-      setActionFnContainer(() => updateContainer);
-    } else {
-      setActionFnContainer(() => addContainer);
-    }
-  }, [isContainerEditing]);
-
-  const [initialState, setInitialState] = useState({});
-  const [containerInitialState, setContainerInitialState] = useState({});
-  useEffect(() => {
-    if (isEditing) {
-      const initialState =
-        isEditing && selectedProduct
-          ? { id: selectedProduct.id, name: selectedProduct.name }
-          : {};
-      setInitialState(initialState);
-    } else {
-      setInitialState({});
-    }
-  }, [isEditing, selectedProduct]);
-
-  useEffect(() => {
-    if (isContainerEditing) {
-      const initialState =
-        isContainerEditing && selectedContainer
-          ? {
-              ...selectedContainer,
-            }
-          : {};
-      setContainerInitialState(initialState);
-    } else {
-      setContainerInitialState({});
-    }
-  }, [isContainerEditing, selectedContainer]);
-
-  const [state, formAction, isPending] = useActionState<
-    ProductActionState,
-    FormData
-  >(actionFn, initialState);
-
-  const [stateContainer, formActionContainer, isPendingContainer] =
-    useActionState<ContainerActionState, FormData>(
-      actionFnContainer,
-      containerInitialState
-    );
-
-  const { addToast } = useToast();
-
-  // Al finalizar la acción:
-  useEffect(() => {
-    if (state?.success) {
-      mutate("/api/product"); // Refresca productos con SWR
-      setIsModalOpen(false);
-      addToast(
-        isEditing ? "Producto actualizado" : "Producto agregado",
-        "success"
-      );
-      setSelectedProduct(null);
-      setIsEditing(false);
-      setComboBoxSelectedOption(null);
-      setInitialState({});
-    }
-  }, [state]);
-
-  useEffect(() => {
-    if (stateContainer?.success) {
-      console.log("container actualizad o agregado ", stateContainer);
-      mutate("/api/container"); // Refresca contenedores con SWR
-      addToast(
-        isContainerEditing ? "Contenedor actualizado" : "Contenedor agregado",
-        "success"
-      );
-      setIsContainerModalOpen(false);
-      setIsContainerEditing(false);
-      setContainerInitialState({})
-    }
-  }, [stateContainer]);
-  console.log("🚀 ~ ProductsPage ~ initialState:", initialState);
+    selectedEntity: selectedContainer,
+    setSelectedEntity: setSelectedContainer,
+    isEditing: isContainerEditing,
+    setIsEditing: setIsContainerEditing,
+    isModalOpen: isContainerModalOpen,
+    setIsModalOpen: setIsContainerModalOpen,
+    initialState: containerInitialState,
+    setInitialState: setContainerInitialState,
+    formAction: formActionContainer,
+    state: stateContainer,
+    isPending: isPendingContainer,
+    handleOnDelete: handleOnDeleteContainer,
+  } = useEntityManager<Container>({
+    route: "/api/container",
+    addAction: addContainer,
+    updateAction: updateContainer,
+    deleteAction: deleteContainer,
+    setComboBoxSelectedOption,
+    comboBoxSelectedOption,
+    entityName: "Contenedor",
+  });
 
   const addNewProductComponent = (state: ProductActionState) => {
     return AddOrEditEntityComponent(
@@ -191,35 +118,6 @@ export default function ProductsPage() {
     );
   };
 
-  const handleOnDelete = async (id: number, isProduct: boolean) => {
-    try {
-      const formData = new FormData();
-      formData.append("id", String(id));
-      if (isProduct) {
-        const response = await deleteProduct({ id }, formData);
-        console.log("🚀 ~ handleOnDelete ~ response:", response);
-        if (response.error) {
-          addToast(response.error, "error", 5000);
-          return;
-        }
-        addToast("Producto eliminado", "success");
-        mutate("/api/product");
-      } else {
-        const response = await deleteContainer({ id }, formData);
-
-        console.log("🚀 ~ handleOnDelete ~ response:", response);
-        if (response.error) {
-          addToast(response.error, "error", 5000);
-          return;
-        }
-        addToast("Contenedor eliminado", "success");
-        mutate("/api/container");
-      }
-    } catch (error) {
-      console.error("Error deleting product:", error);
-    }
-  };
-
   return (
     <>
       <EntityListSection<Container>
@@ -241,7 +139,7 @@ export default function ProductsPage() {
           setIsContainerEditing(true);
           setIsContainerModalOpen(true);
         }}
-        onDelete={({ id }) => handleOnDelete(Number(id), false)}
+        onDelete={({ id }) => handleOnDeleteContainer(Number(id))}
         isModalOpen={isContainerModalOpen}
         setIsModalOpen={setIsContainerModalOpen}
         modalContent={addNewContainerComponent(
@@ -277,14 +175,14 @@ export default function ProductsPage() {
           setSelectedProduct(product);
           setIsEditing(true);
           setComboBoxSelectedOption({
-            id: product.container ?? -1,
+            id: product.containerId ?? -1,
             name:
               containers?.find((c) => c.id === product.containerId)?.name || "",
           });
           setIsModalOpen(true);
           console.log("product", product);
         }}
-        onDelete={({ id }) => handleOnDelete(Number(id), true)}
+        onDelete={({ id }) => handleOnDeleteProduct(Number(id))}
         isModalOpen={isModalOpen}
         setIsModalOpen={setIsModalOpen}
         modalContent={addNewProductComponent(
