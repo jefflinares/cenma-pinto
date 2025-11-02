@@ -43,7 +43,7 @@ export function useEntityManager<T>({
   const [selectedEntity, setSelectedEntity] = useState<T | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
+  const [currentPage, setCurrentPage] = useState(1);
   const [actionFn, setActionFn] = useState<(state: ActionState, payload: FormData) => Promise<ActionState>>();
   useEffect(() => {
     if (isEditing) {
@@ -82,6 +82,9 @@ export function useEntityManager<T>({
       setComboBoxSelectedOption(null);
       setInitialState({});
     }
+    else if (state?.error) {
+      addToast(state.error, "error", 4000);
+    }
   }, [state]);
 
   const handleOnDelete = async (id: number) => {
@@ -117,5 +120,7 @@ export function useEntityManager<T>({
     formAction,
     isPending,
     handleOnDelete,
+    currentPage,
+    setCurrentPage,
   };
 }

@@ -63,6 +63,11 @@ const filteredData = data.filter(row => {
     .toLowerCase();
   return rowText.includes(query.toLowerCase());
 });
+
+const startIdx = (currentPage - 1) * pageSize;
+const endIdx = startIdx + pageSize;
+const paginatedData = filteredData.slice(startIdx, endIdx);
+
   console.log("🚀 ~ DataTable ~ filteredData:", filteredData)
 
   const toggleRowExpansion = (rowId: string | number) => {
@@ -111,8 +116,8 @@ const filteredData = data.filter(row => {
             </tr>
           </thead>
           <tbody>
-            {filteredData.length > 0 && !isLoading ? (
-              filteredData.map((row) => (
+            {paginatedData.length > 0 && !isLoading ? (
+              paginatedData.map((row) => (
                 <React.Fragment key={row.id}>
                   <tr className="border-b hover:bg-gray-50">
                     {expandable && (
