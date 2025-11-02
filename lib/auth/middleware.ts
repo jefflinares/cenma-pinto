@@ -49,7 +49,7 @@ export function validatedActionWithUser<S extends z.ZodType<any, any>, T>(
     const result = schema.safeParse(Object.fromEntries(formData));
     if (!result.success) {
       console.log('result error: ', JSON.stringify(result.error))
-      return { error: result.error.errors[0].message };
+      return action({ error: result.error.errors[0].message}, formData, user);
     }
 
     return action(result.data, formData, user);

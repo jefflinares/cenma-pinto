@@ -6,9 +6,9 @@ import { db } from "@/lib/db/drizzle";
 import {
   ActivityType,
   income as incomeTable,
-  incomeDetails,
   providers,
   products as productsTable,
+  incomeDetails as incomeDetailsTable,
 } from "@/lib/db/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
@@ -143,9 +143,7 @@ export const deleteSupplier = validatedActionWithUser(
 
 const incomeSchema = z
   .object({
-    date: z
-      .string()
-      .min(1),
+    date: z.string().min(1),
     providerId: z.string().min(1).transform(Number),
   })
   .passthrough(); // This allows extra fields to pass through
@@ -173,7 +171,7 @@ export const addIncome = validatedActionWithUser(
 
         // Insert product records if any
         if (products.length > 0) {
-          await tx.insert(incomeDetails).values(
+          await tx.insert(incomeDetailsTable).values(
             products.map((p) => ({
               incomeId: newIncome.id,
               productId: p.productId,
@@ -219,10 +217,8 @@ export const addIncome = validatedActionWithUser(
 const updateIncomeSchema = z
   .object({
     id: z.string().min(1).transform(Number),
-    date: z
-      .string()
-      .min(1),
-      //.transform((date) => new Date(date)),
+    date: z.string().min(1),
+    //.transform((date) => new Date(date)),
     providerId: z.string().min(1).transform(Number),
   })
   .passthrough(); // This allows extra fields to pass through
@@ -230,7 +226,6 @@ const updateIncomeSchema = z
 export const updateIncome = validatedActionWithUser(
   updateIncomeSchema,
   async (data, _, user) => {
-    console.log("🚀 ~ updateIncome data:", data);
     const { id, date, providerId, ...rest } = data;
     try {
       const products = extractProductsIds(rest);
@@ -248,21 +243,41 @@ export const updateIncome = validatedActionWithUser(
         if (!updatedIncome) {
           throw new Error("Failed to update income");
         }
-        // Verify if there are new products added
-        const existingProductIds = products.map((p) => p.productId);
-        const productsQuery = await tx.select()
-          .from(productsTable);
-          // TODO: filter by existingProductIds only
-          if (productsQuery.length !== existingProductIds.length) {
-            // We need to add new products instead of updating them
-            
+        // Get the products added in the incomeDetailsTable
+        const incomeDetails = await tx
+          .select()
+          .from(incomeDetailsTable)
+          .where(eq(incomeDetailsTable.incomeId, id));
+
+        // Verify if there are new products that need to be added
+        const existingProductIds = incomeDetails.map(
+          (detail) => detail.productId
+        );
+        const productsQuery = await tx.select().from(productsTable);
+        
+        if (productsQuery.length !== existingProductIds.length) {
+          const nonAddedProducts = productsQuery.filter(
+            (p) => !existingProductIds.includes(p.id)
+          );
+          // We need to add new products instead of updating them
+          if (nonAddedProducts.length > 0) {
+            await tx.insert(incomeDetailsTable).values(
+              nonAddedProducts.map((p) => ({
+                incomeId: updatedIncome[0].id,
+                productId: p.id,
+                quantity: String(0),
+                price: "0",
+                createdBy: user.id,
+              }))
+            );
           }
-        // Insert product records if any
+        }
+        // Update product records
         if (products.length > 0) {
           await Promise.all(
             products.map((p) =>
               tx
-                .update(incomeDetails)
+                .update(incomeDetailsTable)
                 .set({
                   quantity: String(p.quantity),
                   price: "0",
@@ -270,8 +285,8 @@ export const updateIncome = validatedActionWithUser(
                 })
                 .where(
                   and(
-                    eq(incomeDetails.incomeId, updatedIncome[0].id),
-                    eq(incomeDetails.productId, p.productId)
+                    eq(incomeDetailsTable.incomeId, updatedIncome[0].id),
+                    eq(incomeDetailsTable.productId, p.productId)
                   )
                 )
             )

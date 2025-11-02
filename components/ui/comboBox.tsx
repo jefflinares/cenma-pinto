@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "./input";
 import { Modal } from "./modal";
 
@@ -37,6 +37,16 @@ function ComboBoxWithModal({
   const filteredOptions = options.filter((opt) =>
     opt.name.toLowerCase().includes(query.toLowerCase())
   );
+// Auto-select exact match
+  useEffect(() => {
+    if (!setComboBoxSelectedOption) return;
+    const exactMatch = options.find(
+      (opt) => opt.name.toLowerCase() === query.trim().toLowerCase()
+    );
+    if (exactMatch) {
+      setComboBoxSelectedOption(exactMatch);
+    }
+  }, [query, options, setComboBoxSelectedOption]);
 
   const handleAddOption = () => {
     if (newOption.name.trim() !== "") {

@@ -34,7 +34,7 @@ type IncomeRow = Income & {
 export default function SuppliersPage() {
   const [comboBoxSelectedOption, setComboBoxSelectedOption] =
     useState<Entity | null>(null);
-
+  
   const {
     data: suppliers,
     isLoading,
@@ -48,6 +48,8 @@ export default function SuppliersPage() {
     formAction: formActionSupplier,
     isPending,
     handleOnDelete: handleOnDeleteSupplier,
+    currentPage: currentPageProvider,
+    setCurrentPage: setCurrentPageProvider,
   } = useEntityManager<ProviderRow>({
     route: "/api/supplier",
     addAction: addSupplier,
@@ -71,6 +73,8 @@ export default function SuppliersPage() {
     setInitialState: setIncomeInitialState,
     formAction: formActionIncomes,
     handleOnDelete: handleOnDeleteIncome,
+    currentPage: currentPageIncome,
+    setCurrentPage: setCurrentPageIncome,
   } = useEntityManager<IncomeRow>({
     route: "/api/incomes",
     addAction: addIncome,
@@ -171,10 +175,10 @@ export default function SuppliersPage() {
           { header: "Teléfono", field: "phone" },
           { header: "Dirección", field: "address" },
         ]}
-        currentPage={1}
+        currentPage={currentPageProvider}
         totalItems={suppliers?.length || 0}
         pageSize={10}
-        onPageChange={() => {}}
+        onPageChange={(page) => setCurrentPageProvider(page)}
         onEdit={(supplier) => {
           setSelectedSupplier(supplier);
           setIsEditing(true);
@@ -200,7 +204,7 @@ export default function SuppliersPage() {
       />
 
       <EntityListSection<IncomeRow>
-        title="Ingresos de Productos"
+        title="Ingresos de Proveedores"
         addButtonText="Agregar nuevo Ingreso"
         isLoading={isLoadingIncomes}
         data={incomes ?? []}
@@ -209,10 +213,10 @@ export default function SuppliersPage() {
           { header: "Proveedor", field: "providerName" },
           // { header: "Dirección", field: "address" },
         ]}
-        currentPage={1}
+        currentPage={currentPageIncome}
         totalItems={incomes?.length || 0}
         pageSize={10}
-        onPageChange={() => {}}
+        onPageChange={(page) => setCurrentPageIncome(page)}
         onEdit={(income) => {
           setSelectedIncome(income);
           setIsIncomeEditing(true);
