@@ -9,7 +9,7 @@ export type Entity = {
 };
 
 export type ComboBoxWithModalProps = React.ComponentProps<"input"> & {
-  data?: Entity[];
+  data: Entity[];
   modalChildren?: React.ReactNode;
   selectedOption?: Entity | null;
   setComboBoxSelectedOption?: React.Dispatch<
@@ -30,13 +30,15 @@ function ComboBoxWithModal({
 }: ComboBoxWithModalProps) {
   console.log("🚀 ~ ComboBoxWithModal ~ selectedOption:", selectedOption)
   const [options, setOptions] = useState(data || []);
+  console.log("🚀 ~ ComboBoxWithModal ~ data:", data)
+  console.log("🚀 ~ ComboBoxWithModal ~ options:", options)
   const [query, setQuery] = useState(selectedOption ? selectedOption.name : "");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newOption, setNewOption] = useState({ id: 0, name: "" });
 
-  const filteredOptions = options.filter((opt) =>
+  const filteredOptions = query ? options.filter((opt) =>
     opt.name.toLowerCase().includes(query.toLowerCase())
-  );
+  ) : options;
 // Auto-select exact match
   useEffect(() => {
     if (!setComboBoxSelectedOption) return;

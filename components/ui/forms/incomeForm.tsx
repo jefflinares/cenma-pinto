@@ -2,6 +2,7 @@ import { ProductRow } from "@/app/(dashboard)/dashboard/productos/page";
 import { ComboBoxWithModalProps, type Entity } from "../comboBox";
 import GenericForm, { GenericFormField, GenericFormState } from "./GenericForm";
 import { IncomeDetailRow } from "@/app/(dashboard)/dashboard/proveedores/page";
+import { formatDDMMYYYYtoYYYYMMDD } from "@/lib/utils";
 
 export type IncomeActionState = {
   id?: string | number;
@@ -28,13 +29,7 @@ type IncomeProps = ComboBoxWithModalProps & {
 const IncomeForm = (props: IncomeProps) => {
   console.log("🚀 ~ IncomeForm ~ props:", props?.state);
 
-  function formatDDMMYYYYtoYYYYMMDD(dateStr: string) {
-    const [dd, mm, yyyy] = dateStr.split("/");
-    if (dd && mm && yyyy) {
-      return `${yyyy}-${mm}-${dd}`;
-    }
-    return "";
-  }
+ 
   const dynamicFields = {
     type: "row",
     name: "products",

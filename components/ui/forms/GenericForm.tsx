@@ -77,7 +77,7 @@ const GenericForm = ({
         />
         <ComboBoxWithModal
           id={field.name}
-          data={field.data}
+          data={field.data || []}
           modalChildren={modalChildren}
           onAddCallBackAction={onAddCallBackAction}
           selectedOption={selectedOption}

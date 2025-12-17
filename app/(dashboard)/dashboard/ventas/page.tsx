@@ -2,14 +2,20 @@
 import { useEntityManager } from '@/components/hooks/useEntityManager';
 import { addCustomer, deleteCustomer, updateCustomer } from './actions';
 import { EntityListSection } from '@/components/ui/EntityListSection';
-import { Customer } from '@/lib/db/schema';
+import { Customer, CustomerOrder } from '@/lib/db/schema';
 import CustomerForm, { CustomerActionState } from '@/components/ui/forms/customerForm';
 import AddOrEditEntityComponent from '@/components/ui/forms/addOrEditForm';
+import OrderForm, { OrderActionState } from '@/components/ui/forms/orderForm';
+import { useRouter } from 'next/navigation';
 
-type CustomerRow = Customer
+export type CustomerRow = Customer
+
+export type OrderRow = CustomerOrder
 
 export default function SalesPage() {
   
+  const router = useRouter();
+
   const {
     data: customers,
     isLoading,
@@ -33,6 +39,30 @@ export default function SalesPage() {
     entityName: "Cliente",
   })
 
+
+  const {
+    data: orders,
+    isLoading: isLoadingOrder,
+    selectedEntity: selectedOrder,
+    setSelectedEntity: setSelectedOrder,
+    isEditing: isEditingOrder,
+    setIsEditing: setIsEditingOrder,
+    isModalOpen: isModalOpenOrder,
+    setIsModalOpen: setIsModalOpenOrder,
+    setInitialState: setInitialStateOrder,
+    formAction: formActionOrder,
+    isPending: isPendingOrder,
+    handleOnDelete: handleOnDeleteOrder,
+  } = useEntityManager<CustomerOrder>({
+    route: "/api/orders",
+    addAction: addCustomer,
+    updateAction: updateCustomer,
+    deleteAction: deleteCustomer,
+    setComboBoxSelectedOption: () => {},
+    comboBoxSelectedOption: null,
+    entityName: "Order",
+  })
+
   const addNewCustomer = (
     state: CustomerActionState,
     formAction: (formData: FormData) => void | Promise<void>
@@ -46,6 +76,27 @@ export default function SalesPage() {
         isEditing={isEditing}
         setIsModalOpen={setIsModalOpen}
         setIsEditing={setIsEditing}
+      />
+    )
+  }
+
+  const addNewOrder = (
+    state: OrderActionState,
+    formAction: (formData: FormData) => void | Promise<void>
+  ) => {
+    return AddOrEditEntityComponent(
+      isEditingOrder ? "Editar Orden" : "Agregar Orden",
+      <OrderForm
+        formAction={formAction}
+        state={state}
+        customersData={customers?.map((c) => ({
+          id: c.id,
+          name: c.name
+        }))}
+        isPending={isPendingOrder}
+        isEditing={isEditingOrder}
+        setIsModalOpen={setIsModalOpenOrder}
+        setIsEditing={setIsEditingOrder}
       />
     )
   }
@@ -90,6 +141,48 @@ export default function SalesPage() {
           setIsEditing(false);
           setSelectedCustomer(null);
           setInitialState({ name: "" });
+        }}
+      />
+      <EntityListSection<CustomerRow>
+        title="Ventas"
+        addButtonText='Agregar nueva venta'
+        isLoading={isLoadingOrder}
+        data={orders ?? []}
+        columns={[
+          { header: "Número Orden", field: "id" },
+          { header: "Cliente", field: "name" },
+          { header: "Fecha", field: "phone" },
+          { header: "Total", field: "email" },
+          // { header: "Dirección", field: "address" },
+        ]}
+        currentPage={1}
+        totalItems={orders?.length || 0}
+        pageSize={10}
+        onPageChange={() => {}}
+        onEdit={(order) => {
+          setSelectedOrder(order)
+          setIsEditingOrder(true)
+          setIsModalOpenOrder(true)
+        }}
+        onDelete={({ id }) => handleOnDeleteOrder(Number(id))}
+
+        isModalOpen={isModalOpenOrder}
+        setIsModalOpen={setIsModalOpenOrder}
+        modalContent={addNewOrder(
+          isEditingOrder
+            ? (selectedOrder as any as OrderActionState)
+            : ({} as any),
+          formActionOrder
+        )}
+        redirectsOnAdd={true}
+        callBackActionWhenModalOpen={() => {
+          console.log(
+            "reset selected order and initial state when modal opens"
+          );
+          setIsEditingOrder(false);
+          setSelectedOrder(null);
+          setInitialStateOrder({});
+          router.push('./ventas/nueva')
         }}
       />
     </>
