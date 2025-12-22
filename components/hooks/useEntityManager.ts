@@ -7,6 +7,7 @@ import { ProductActionState } from "../ui/forms/product";
 import { ContainerActionState } from "../ui/forms/containerForm";
 import { SupplierActionState } from "../ui/forms/supplier";
 import { IncomeActionState } from "../ui/forms/incomeForm";
+import useFetchData from "./useFetchData";
 
 type ActionState =
   | ProductActionState
@@ -26,7 +27,6 @@ type UseEntityManagerParams = {
   toastUpdateText?: string;
   comboBoxData?: Entity[];
 };
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export function useEntityManager<T>({
   route,
@@ -38,7 +38,7 @@ export function useEntityManager<T>({
   toastAddText = `${entityName} agregado`,
   toastUpdateText = `${entityName} actualizado`,
 }: UseEntityManagerParams) {
-  const { data, error, isLoading } = useSWR<T[]>(route, fetcher);
+  const { data, error, isLoading } = useFetchData<T[]>(route);
 
   const [selectedEntity, setSelectedEntity] = useState<T | null>(null);
   const [isEditing, setIsEditing] = useState(false);

@@ -1,4 +1,4 @@
-import { isNull, desc, eq, and } from "drizzle-orm";
+import { isNull, desc, eq, and, gt } from "drizzle-orm";
 import { db } from "../drizzle";
 import { income, incomeDetails, products, providers } from "../schema";
 import { validateSession } from "./util";
@@ -37,10 +37,11 @@ export async function getIncomes() {
                 price: incomeDetails.price,
                 productName: products.name,
                 quantity: incomeDetails.quantity,
+                stock: incomeDetails.remainingQuantity
             })
             .from(incomeDetails)
             .innerJoin(products, eq(incomeDetails.productId, products.id))
-            .where(and(isNull(incomeDetails.deletedAt), eq(incomeDetails.incomeId, incomeRow.id))),
+            .where(and(isNull(incomeDetails.deletedAt), eq(incomeDetails.incomeId, incomeRow.id), gt(incomeDetails.quantity, "0"))),
         };
     }));
 

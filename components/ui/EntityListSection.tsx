@@ -1,4 +1,10 @@
-import { Card, CardHeader, CardTitle, CardAction, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardAction,
+  CardContent,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import DataTable, { Column, DataTableProps } from "@/components/ui/table";
 import { Modal } from "@/components/ui/modal";
@@ -12,6 +18,7 @@ type EntityListSectionProps<T extends EntityWithId> = DataTableProps<T> & {
   setIsModalOpen: (open: boolean) => void;
   callBackActionWhenModalOpen?: () => void;
   modalContent: React.ReactNode;
+  redirectsOnAdd?: boolean;
 };
 
 export function EntityListSection<T extends EntityWithId>({
@@ -31,7 +38,8 @@ export function EntityListSection<T extends EntityWithId>({
   callBackActionWhenModalOpen,
   modalContent,
   hasNestedData,
-  renderNestedContent
+  renderNestedContent,
+  redirectsOnAdd = false,
 }: EntityListSectionProps<T>) {
   return (
     <section className="flex-1 p-4 lg:p-8">
@@ -46,7 +54,13 @@ export function EntityListSection<T extends EntityWithId>({
               type="button"
               className="bg-orange-500 hover:bg-orange-600 text-white"
               size="sm"
-              onClick={() => { callBackActionWhenModalOpen?.(); setIsModalOpen(true); }}
+              onClick={() => {
+                if (redirectsOnAdd) {
+                  callBackActionWhenModalOpen?.();
+                  return;
+                }
+                setIsModalOpen(true);
+              }}
             >
               {addButtonText}
             </Button>
@@ -70,9 +84,7 @@ export function EntityListSection<T extends EntityWithId>({
         </CardContent>
       </Card>
       {isModalOpen && (
-        <Modal setIsModalOpen={setIsModalOpen}>
-          {modalContent}
-        </Modal>
+        <Modal setIsModalOpen={setIsModalOpen}>{modalContent}</Modal>
       )}
     </section>
   );

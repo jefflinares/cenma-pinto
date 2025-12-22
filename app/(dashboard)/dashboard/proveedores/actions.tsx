@@ -176,6 +176,7 @@ export const addIncome = validatedActionWithUser(
               incomeId: newIncome.id,
               productId: p.productId,
               quantity: String(p.quantity),
+              remainingQuantity: String(p.quantity),
               price: "0",
               createdBy: user.id,
             }))
@@ -266,6 +267,7 @@ export const updateIncome = validatedActionWithUser(
                 incomeId: updatedIncome[0].id,
                 productId: p.id,
                 quantity: String(0),
+                remainingQuantity: String(0),
                 price: "0",
                 createdBy: user.id,
               }))
@@ -280,6 +282,7 @@ export const updateIncome = validatedActionWithUser(
                 .update(incomeDetailsTable)
                 .set({
                   quantity: String(p.quantity),
+                  remainingQuantity: String(p.quantity),
                   price: "0",
                   createdBy: user.id,
                 })

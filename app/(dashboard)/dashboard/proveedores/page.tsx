@@ -24,8 +24,8 @@ import { useEntityManager } from "@/components/hooks/useEntityManager";
 import { Entity } from "@/components/ui/comboBox";
 
 type ProviderRow = Provider;
-export type IncomeDetailRow = IncomeDetail & { productName?: string };
-type IncomeRow = Income & {
+export type IncomeDetailRow = IncomeDetail & { productName?: string, stock?: number, unitPrice?: number };
+export type IncomeRow = Income & {
   formatedDate?: string;
   providerName?: string;
   incomeDetails?: IncomeDetailRow[];
@@ -162,6 +162,7 @@ export default function SuppliersPage() {
   }[] = [
     { header: "Producto", field: "productName" },
     { header: "Cantidad", field: "quantity" },
+    { header: "stock", field: "stock" },
   ];
   return (
     <>
@@ -204,7 +205,7 @@ export default function SuppliersPage() {
       />
 
       <EntityListSection<IncomeRow>
-        title="Ingresos de Proveedores"
+        title="Ingresos de Camiones"
         addButtonText="Agregar nuevo Ingreso"
         isLoading={isLoadingIncomes}
         data={incomes ?? []}
