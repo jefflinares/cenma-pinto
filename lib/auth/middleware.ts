@@ -46,7 +46,26 @@ export function validatedActionWithUser<S extends z.ZodType<any, any>, T>(
       throw new Error('User is not authenticated');
     }
 
-    const result = schema.safeParse(Object.fromEntries(formData));
+    // Convert FormData to an object and try to parse JSON-encoded values
+    const entries = Object.fromEntries(formData);
+    const parsedEntries: Record<string, any> = {};
+    for (const [key, value] of Object.entries(entries)) {
+      if (typeof value === 'string') {
+        const s = value.trim();
+        // If it looks like JSON (object or array), parse it
+        if ((s.startsWith('{') && s.endsWith('}')) || (s.startsWith('[') && s.endsWith(']'))) {
+          try {
+            parsedEntries[key] = JSON.parse(value);
+            continue;
+          } catch (e) {
+            // Fall back to the original string if parsing fails
+          }
+        }
+      }
+      parsedEntries[key] = value;
+    }
+
+    const result = schema.safeParse(parsedEntries);
     if (!result.success) {
       console.log('result error: ', JSON.stringify(result.error))
       return action({ error: result.error.errors[0].message}, formData, user);

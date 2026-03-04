@@ -7,7 +7,7 @@ import { formatDDMMYYYYtoYYYYMMDD } from "@/lib/utils";
 export type IncomeActionState = {
   id?: string | number;
   date?: string | Date;
-  formatedDate?: string;
+  formattedDate?: string;
   incomeDetails?: IncomeDetailRow[];
   providerId?: string | number;
   totalAmount?: number;
@@ -76,8 +76,8 @@ const IncomeForm = (props: IncomeProps) => {
       type: "date",
       required: true,
       placeholder: "Fecha de Ingreso",
-      defaultValue: props.state.formatedDate
-        ? formatDDMMYYYYtoYYYYMMDD(props.state.formatedDate)
+      defaultValue: props.state.formattedDate
+        ? formatDDMMYYYYtoYYYYMMDD(props.state.formattedDate)
         : new Date().toISOString().split("T")[0],
     },
     {

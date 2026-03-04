@@ -6,13 +6,14 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import DataTable, { Column, DataTableProps } from "@/components/ui/table";
+import DataTable, { ActionIcon, Column, DataTableProps } from "@/components/ui/table";
 import { Modal } from "@/components/ui/modal";
 
 export type EntityWithId = { id?: string | number };
 
 type EntityListSectionProps<T extends EntityWithId> = DataTableProps<T> & {
   title: string;
+  actions?: ActionIcon[];
   addButtonText: string;
   isModalOpen: boolean;
   setIsModalOpen: (open: boolean) => void;
@@ -26,6 +27,7 @@ export function EntityListSection<T extends EntityWithId>({
   addButtonText,
   isLoading,
   data,
+  actions,
   columns,
   currentPage,
   totalItems,
@@ -71,6 +73,7 @@ export function EntityListSection<T extends EntityWithId>({
             isLoading={isLoading}
             data={data}
             columns={columns}
+            actions={actions}
             currentPage={currentPage}
             totalItems={totalItems}
             pageSize={pageSize}

@@ -9,6 +9,7 @@ import {
   updateSupplier,
   deleteSupplier,
   updateIncome,
+  updateIncomeStatus,
   addIncome,
   deleteIncome,
 } from "./actions";
@@ -22,11 +23,18 @@ import NestedTable from "@/components/ui/NestedTable";
 import { ProductRow } from "../productos/page";
 import { useEntityManager } from "@/components/hooks/useEntityManager";
 import { Entity } from "@/components/ui/comboBox";
+import { Check, ReceiptText } from "lucide-react";
+import { Modal } from "@/components/ui/modal";
+import { useRouter } from "next/navigation";
 
 type ProviderRow = Provider;
-export type IncomeDetailRow = IncomeDetail & { productName?: string, stock?: number, unitPrice?: number };
+export type IncomeDetailRow = IncomeDetail & {
+  productName?: string;
+  stock: number;
+  unitPrice?: number;
+};
 export type IncomeRow = Income & {
-  formatedDate?: string;
+  formattedDate?: string;
   providerName?: string;
   incomeDetails?: IncomeDetailRow[];
 };
@@ -34,7 +42,8 @@ export type IncomeRow = Income & {
 export default function SuppliersPage() {
   const [comboBoxSelectedOption, setComboBoxSelectedOption] =
     useState<Entity | null>(null);
-  
+  const [localModal, setLocalModal] = useState(false);
+  const router = useRouter()
   const {
     data: suppliers,
     isLoading,
@@ -73,6 +82,7 @@ export default function SuppliersPage() {
     setInitialState: setIncomeInitialState,
     formAction: formActionIncomes,
     handleOnDelete: handleOnDeleteIncome,
+    handleOnUpdate: handleOnUpdateIncome,
     currentPage: currentPageIncome,
     setCurrentPage: setCurrentPageIncome,
   } = useEntityManager<IncomeRow>({
@@ -101,7 +111,7 @@ export default function SuppliersPage() {
 
   const addNewSupplier = (
     state: SupplierActionState,
-    formAction: (formData: FormData) => void | Promise<void>
+    formAction: (formData: FormData) => void | Promise<void>,
   ) => {
     return AddOrEditEntityComponent(
       isEditing ? "Editar Proveedor" : "Agregar Proveedor",
@@ -113,13 +123,13 @@ export default function SuppliersPage() {
         isEditing={isEditing}
         setIsModalOpen={setIsModalOpen}
         setIsEditing={setIsEditing}
-      />
+      />,
     );
   };
 
   const addNewIncome = (
     state: IncomeActionState,
-    formAction: (formData: FormData) => void | Promise<void>
+    formAction: (formData: FormData) => void | Promise<void>,
   ) => {
     return AddOrEditEntityComponent(
       isIncomeEditing ? "Editar Ingreso" : "Agregar Ingreso",
@@ -152,7 +162,7 @@ export default function SuppliersPage() {
           setIncomeInitialState({});
           setSelectedIncome(null);
         }}
-      />
+      />,
     );
   };
 
@@ -166,6 +176,31 @@ export default function SuppliersPage() {
   ];
   return (
     <>
+      {localModal && (
+        <Modal
+          title={"Desea confirmar el ingreso ?"}
+          setIsModalOpen={() => setLocalModal(false)}
+          onConfirmationText="Confirmar Ingreso"
+          onCancelText="Cancelar"
+          onCancelAction={() => setLocalModal(false)}
+          onConfirmAction={async () => {
+            if (selectedIncome) {
+              await handleOnUpdateIncome(
+                {
+                  ...selectedIncome,
+                  id: selectedIncome.id,
+                  status: "confirmed",
+                },
+                updateIncomeStatus,
+              );
+              setSelectedIncome(null);
+              setLocalModal(false);
+            }
+          }}
+        >
+          Esta acción no se puede deshacer.
+        </Modal>
+      )}
       <EntityListSection<ProviderRow>
         title="Proveedores"
         addButtonText="Agregar nuevo Proveedor"
@@ -192,11 +227,11 @@ export default function SuppliersPage() {
           isEditing
             ? (selectedSupplier as any as SupplierActionState)
             : ({} as any),
-          formActionSupplier
+          formActionSupplier,
         )}
         callBackActionWhenModalOpen={() => {
           console.log(
-            "reset selected supplier and initial state when modal opens"
+            "reset selected supplier and initial state when modal opens",
           );
           setIsEditing(false);
           setSelectedSupplier(null);
@@ -210,9 +245,68 @@ export default function SuppliersPage() {
         isLoading={isLoadingIncomes}
         data={incomes ?? []}
         columns={[
-          { header: "Fecha", field: "formatedDate" },
+          { header: "Fecha", field: "formattedDate" },
           { header: "Proveedor", field: "providerName" },
           // { header: "Dirección", field: "address" },
+        ]}
+        actions={[
+          {
+            action: "edit",
+            component: null,
+            renderCondition: (income: Income) => income.status === "draft",
+          },
+          {
+            action: "delete",
+            component: null,
+            renderCondition: (income: Income) => income.status === "draft",
+          },
+          {
+            action: "confirm",
+            component: (income: IncomeRow) => (
+              <button
+                onClick={() => {
+                  setSelectedIncome(income);
+                  setLocalModal(true);
+                }}
+                className="text-green-500 hover:text-green-700"
+              >
+                <Check size={20} />
+              </button>
+            ),
+            renderCondition: (income: Income) => income.status === "draft",
+          } as any,
+          {
+            action: "generate receipt",
+            component: (income: IncomeRow) => (
+              <button
+                className="text-blue-500 hover:text-blue-700 flex items-center gap-1"
+                onClick={() => {
+                  router.push(`/dashboard/pagos/nuevo/${income.id}`);
+                  console.log("Generar recibo para el ingreso:", income);
+                }}
+              >
+                <ReceiptText size={18} />
+                <span className="text-sm">Generar Recibo</span>
+              </button>
+            ),
+            renderCondition: (income: Income) => income.status === "confirmed"
+          },
+          {
+            action: "view receipt",
+            component: (income: IncomeRow) => (
+              <button
+                className="text-blue-500 hover:text-blue-700 flex items-center gap-1"
+                onClick={() => {
+                  router.push(`/dashboard/pagos/${income.providerSettlementId}`);
+                  console.log("Generar recibo para el ingreso:", income);
+                }}
+              >
+                <ReceiptText size={18} />
+                <span className="text-sm">Ver Recibo</span>
+              </button>
+            ),
+            renderCondition: (income: Income) => income.status === "settled"
+          },
         ]}
         currentPage={currentPageIncome}
         totalItems={incomes?.length || 0}
@@ -236,7 +330,7 @@ export default function SuppliersPage() {
         setIsModalOpen={setIsIncomeModalOpen}
         callBackActionWhenModalOpen={() => {
           console.log(
-            "callback para resetear el comboBoxSelectedOption y evitar que quede el último seleccionado aparezca en el formulario del truck"
+            "callback para resetear el comboBoxSelectedOption y evitar que quede el último seleccionado aparezca en el formulario del truck",
           );
           setIsIncomeEditing(false);
           setComboBoxSelectedOption(null);
@@ -247,7 +341,7 @@ export default function SuppliersPage() {
           isIncomeEditing
             ? (selectedIncome as any as IncomeActionState)
             : ({} as any),
-          formActionIncomes
+          formActionIncomes,
         )}
         hasNestedData={(income: IncomeRow) => {
           console.log("evaluation income hasnestedData", income);

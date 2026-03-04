@@ -6,68 +6,69 @@ import {
   timestamp,
   integer,
   date,
-  decimal
-} from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+  decimal,
+  pgEnum,
+} from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 
-export const users = pgTable('users', {
-  id: serial('id').primaryKey(),
-  name: varchar('name', { length: 100 }),
-  email: varchar('email', { length: 255 }).notNull().unique(),
-  passwordHash: text('password_hash').notNull(),
-  role: varchar('role', { length: 20 }).notNull().default('member'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  deletedAt: timestamp('deleted_at'),
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  role: varchar("role", { length: 20 }).notNull().default("member"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at"),
 });
 
-export const teams = pgTable('teams', {
-  id: serial('id').primaryKey(),
-  name: varchar('name', { length: 100 }).notNull(),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  stripeCustomerId: text('stripe_customer_id').unique(),
-  stripeSubscriptionId: text('stripe_subscription_id').unique(),
-  stripeProductId: text('stripe_product_id'),
-  planName: varchar('plan_name', { length: 50 }),
-  subscriptionStatus: varchar('subscription_status', { length: 20 }),
+export const teams = pgTable("teams", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  stripeCustomerId: text("stripe_customer_id").unique(),
+  stripeSubscriptionId: text("stripe_subscription_id").unique(),
+  stripeProductId: text("stripe_product_id"),
+  planName: varchar("plan_name", { length: 50 }),
+  subscriptionStatus: varchar("subscription_status", { length: 20 }),
 });
 
-export const teamMembers = pgTable('team_members', {
-  id: serial('id').primaryKey(),
-  userId: integer('user_id')
+export const teamMembers = pgTable("team_members", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
     .notNull()
     .references(() => users.id),
-  teamId: integer('team_id')
+  teamId: integer("team_id")
     .notNull()
     .references(() => teams.id),
-  role: varchar('role', { length: 50 }).notNull(),
-  joinedAt: timestamp('joined_at').notNull().defaultNow(),
+  role: varchar("role", { length: 50 }).notNull(),
+  joinedAt: timestamp("joined_at").notNull().defaultNow(),
 });
 
-export const activityLogs = pgTable('activity_logs', {
-  id: serial('id').primaryKey(),
-  teamId: integer('team_id')
+export const activityLogs = pgTable("activity_logs", {
+  id: serial("id").primaryKey(),
+  teamId: integer("team_id")
     .notNull()
     .references(() => teams.id),
-  userId: integer('user_id').references(() => users.id),
-  action: text('action').notNull(),
-  timestamp: timestamp('timestamp').notNull().defaultNow(),
-  ipAddress: varchar('ip_address', { length: 45 }),
+  userId: integer("user_id").references(() => users.id),
+  action: text("action").notNull(),
+  timestamp: timestamp("timestamp").notNull().defaultNow(),
+  ipAddress: varchar("ip_address", { length: 45 }),
 });
 
-export const invitations = pgTable('invitations', {
-  id: serial('id').primaryKey(),
-  teamId: integer('team_id')
+export const invitations = pgTable("invitations", {
+  id: serial("id").primaryKey(),
+  teamId: integer("team_id")
     .notNull()
     .references(() => teams.id),
-  email: varchar('email', { length: 255 }).notNull(),
-  role: varchar('role', { length: 50 }).notNull(),
-  invitedBy: integer('invited_by')
+  email: varchar("email", { length: 255 }).notNull(),
+  role: varchar("role", { length: 50 }).notNull(),
+  invitedBy: integer("invited_by")
     .notNull()
     .references(() => users.id),
-  invitedAt: timestamp('invited_at').notNull().defaultNow(),
-  status: varchar('status', { length: 20 }).notNull().default('pending'),
+  invitedAt: timestamp("invited_at").notNull().defaultNow(),
+  status: varchar("status", { length: 20 }).notNull().default("pending"),
 });
 
 export const teamsRelations = relations(teams, ({ many }) => ({
@@ -126,7 +127,7 @@ export type Invitation = typeof invitations.$inferSelect;
 export type NewInvitation = typeof invitations.$inferInsert;
 export type TeamDataWithMembers = Team & {
   teamMembers: (TeamMember & {
-    user: Pick<User, 'id' | 'name' | 'email'>;
+    user: Pick<User, "id" | "name" | "email">;
   })[];
 };
 export type Provider = typeof providers.$inferSelect;
@@ -141,6 +142,19 @@ export type Income = typeof income.$inferSelect;
 export type NewIncome = typeof income.$inferInsert;
 export type IncomeDetail = typeof incomeDetails.$inferSelect;
 export type NewIncomeDetail = typeof incomeDetails.$inferInsert;
+export type ProviderSettlement = typeof providerSettlements.$inferSelect;
+export type NewProviderSettlement = typeof providerSettlements.$inferInsert;
+export type ProviderSettlementDetail =
+  typeof providerSettlementDetails.$inferSelect;
+export type NewProviderSettlementDetail =
+  typeof providerSettlementDetails.$inferInsert;
+export type ProviderSettlementExpense =
+  typeof providerSettlementExpenses.$inferSelect;
+export type NewProviderSettlementExpense =
+  typeof providerSettlementExpenses.$inferInsert;
+export type ProviderPayment = typeof providerPayments.$inferSelect;
+export type NewProviderPayment = typeof providerPayments.$inferInsert;
+
 export type Customer = typeof customers.$inferSelect;
 export type NewCustomer = typeof customers.$inferInsert;
 export type CustomerAccount = typeof customerAccounts.$inferSelect;
@@ -154,56 +168,66 @@ export type NewPayment = typeof payments.$inferInsert;
 export type CashMovement = typeof cashMovements.$inferSelect;
 export type NewCashMovement = typeof cashMovements.$inferInsert;
 
-
 export enum ActivityType {
-  SIGN_UP = 'SIGN_UP',
-  SIGN_IN = 'SIGN_IN',
-  SIGN_OUT = 'SIGN_OUT',
-  UPDATE_PASSWORD = 'UPDATE_PASSWORD',
-  DELETE_ACCOUNT = 'DELETE_ACCOUNT',
-  UPDATE_ACCOUNT = 'UPDATE_ACCOUNT',
-  CREATE_TEAM = 'CREATE_TEAM',
-  REMOVE_TEAM_MEMBER = 'REMOVE_TEAM_MEMBER',
-  INVITE_TEAM_MEMBER = 'INVITE_TEAM_MEMBER',
-  ACCEPT_INVITATION = 'ACCEPT_INVITATION',
-  CREATE_PROVIDER = 'CREATE_PROVIDER',
-  UPDATE_PROVIDER = 'UPDATE_PROVIDER',
-  DELETE_PROVIDER = 'DELETE_PROVIDER',
-  CREATE_PRODUCT = 'CREATE_PRODUCT',
-  UPDATE_PRODUCT = 'UPDATE_PRODUCT',
-  DELETE_PRODUCT = 'DELETE_PRODUCT',
-  CREATE_INCOME = 'CREATE_INCOME',
-  UPDATE_INCOME = 'UPDATE_INCOME',
-  DELETE_INCOME = 'DELETE_INCOME',
-  CREATE_CUSTOMER = 'CREATE_CUSTOMER',
-  UPDATE_CUSTOMER = 'UPDATE_CUSTOMER',
-  DELETE_CUSTOMER = 'DELETE_CUSTOMER',
-  CREATE_ORDER = 'CREATE_ORDER',
-  UPDATE_ORDER = 'UPDATE_ORDER',
-  DELETE_ORDER = 'DELETE_ORDER',
-  CREATE_PAYMENT = 'CREATE_PAYMENT',
-  UPDATE_PAYMENT = 'UPDATE_PAYMENT',
-  DELETE_PAYMENT = 'DELETE_PAYMENT',
-  CREATE_CASH_MOVEMENT = 'CREATE_CASH_MOVEMENT',
-  UPDATE_CASH_MOVEMENT = 'UPDATE_CASH_MOVEMENT',
-  DELETE_CASH_MOVEMENT = 'DELETE_CASH_MOVEMENT',
-  CREATE_CONTAINER = 'CREATE_CONTAINER',
-  UPDATE_CONTAINER = 'UPDATE_CONTAINER',
-  DELETE_CONTAINER = 'DELETE_CONTAINER',
-  CREATE_CLASSIFICATION = 'CREATE_CLASSIFICATION',
-  UPDATE_CLASSIFICATION = 'UPDATE_CLASSIFICATION',
-  DELETE_CLASSIFICATION = 'DELETE_CLASSIFICATION',
+  SIGN_UP = "SIGN_UP",
+  SIGN_IN = "SIGN_IN",
+  SIGN_OUT = "SIGN_OUT",
+  UPDATE_PASSWORD = "UPDATE_PASSWORD",
+  DELETE_ACCOUNT = "DELETE_ACCOUNT",
+  UPDATE_ACCOUNT = "UPDATE_ACCOUNT",
+  CREATE_TEAM = "CREATE_TEAM",
+  REMOVE_TEAM_MEMBER = "REMOVE_TEAM_MEMBER",
+  INVITE_TEAM_MEMBER = "INVITE_TEAM_MEMBER",
+  ACCEPT_INVITATION = "ACCEPT_INVITATION",
+  CREATE_PROVIDER = "CREATE_PROVIDER",
+  UPDATE_PROVIDER = "UPDATE_PROVIDER",
+  DELETE_PROVIDER = "DELETE_PROVIDER",
+  CREATE_PRODUCT = "CREATE_PRODUCT",
+  UPDATE_PRODUCT = "UPDATE_PRODUCT",
+  DELETE_PRODUCT = "DELETE_PRODUCT",
+  CREATE_INCOME = "CREATE_INCOME",
+  UPDATE_INCOME = "UPDATE_INCOME",
+  DELETE_INCOME = "DELETE_INCOME",
+  CREATE_PROVIDER_SETTLEMENT = "CREATE_PROVIDER_SETTLEMENT",
+  UPDATE_PROVIDER_SETTLEMENT = "UPDATE_PROVIDER_SETTLEMENT",
+  DELETE_PROVIDER_SETTLEMENT = "DELETE_PROVIDER_SETTLEMENT",
+  CREATE_PROVIDER_SETTLEMENT_DETAIL = "CREATE_PROVIDER_SETTLEMENT_DETAIL",
+  UPDATE_PROVIDER_SETTLEMENT_DETAIL = "UPDATE_PROVIDER_SETTLEMENT_DETAIL",
+  DELETE_PROVIDER_SETTLEMENT_DETAIL = "DELETE_PROVIDER_SETTLEMENT_DETAIL",
+  CREATE_PROVIDER_SETTLEMENT_EXPENSE = "CREATE_PROVIDER_SETTLEMENT_EXPENSE",
+  UPDATE_PROVIDER_SETTLEMENT_EXPENSE = "UPDATE_PROVIDER_SETTLEMENT_EXPENSE",
+  DELETE_PROVIDER_SETTLEMENT_EXPENSE = "DELETE_PROVIDER_SETTLEMENT_EXPENSE",
+  CREATE_PROVIDER_PAYMENT = "CREATE_PROVIDER_PAYMENT",
+  UPDATE_PROVIDER_PAYMENT = "UPDATE_PROVIDER_PAYMENT",
+  DELETE_PROVIDER_PAYMENT = "DELETE_PROVIDER_PAYMENT",
+  CREATE_CUSTOMER = "CREATE_CUSTOMER",
+  UPDATE_CUSTOMER = "UPDATE_CUSTOMER",
+  DELETE_CUSTOMER = "DELETE_CUSTOMER",
+  CREATE_ORDER = "CREATE_ORDER",
+  UPDATE_ORDER = "UPDATE_ORDER",
+  DELETE_ORDER = "DELETE_ORDER",
+  CREATE_PAYMENT = "CREATE_PAYMENT",
+  UPDATE_PAYMENT = "UPDATE_PAYMENT",
+  DELETE_PAYMENT = "DELETE_PAYMENT",
+  CREATE_CASH_MOVEMENT = "CREATE_CASH_MOVEMENT",
+  UPDATE_CASH_MOVEMENT = "UPDATE_CASH_MOVEMENT",
+  DELETE_CASH_MOVEMENT = "DELETE_CASH_MOVEMENT",
+  CREATE_CONTAINER = "CREATE_CONTAINER",
+  UPDATE_CONTAINER = "UPDATE_CONTAINER",
+  DELETE_CONTAINER = "DELETE_CONTAINER",
+  CREATE_CLASSIFICATION = "CREATE_CLASSIFICATION",
+  UPDATE_CLASSIFICATION = "UPDATE_CLASSIFICATION",
+  DELETE_CLASSIFICATION = "DELETE_CLASSIFICATION",
 }
 
-
-export const providers = pgTable('providers', {
-  id: serial('id').primaryKey(),
-  name: varchar('name', { length: 100 }).notNull(),
-  phone: varchar('phone', { length: 20 }),
-  address: text('address'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  deletedAt: timestamp('deleted_at'),
+export const providers = pgTable("providers", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  phone: varchar("phone", { length: 20 }),
+  address: text("address"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at"),
 });
 
 /* export const productClassifications = pgTable('product_classifications', {
@@ -215,113 +239,235 @@ export const providers = pgTable('providers', {
   deletedAt: timestamp('deleted_at'),
 });
 */
-export const containers = pgTable('containers', {
-  id: serial('id').primaryKey(),
-  name: varchar('name', { length: 50 }).notNull(),
-  capacity: decimal('capacity', { precision: 10, scale: 2 }).notNull(),
-  unit: varchar('unit', { length: 20 }).notNull(), // e.g., 'kg', 'liters'
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  deletedAt: timestamp('deleted_at'),
-});
- 
-
-export const products = pgTable('products', {
-  id: serial('id').primaryKey(),
-  name: varchar('name', { length: 100 }).notNull(),
-  container: integer('container_id').references(() => containers.id),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  deletedAt: timestamp('deleted_at'),
+export const containers = pgTable("containers", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 50 }).notNull(),
+  capacity: decimal("capacity", { precision: 10, scale: 2 }).notNull(),
+  unit: varchar("unit", { length: 20 }).notNull(), // e.g., 'kg', 'liters'
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at"),
 });
 
-
-export const income = pgTable('income', {
-  id: serial('id').primaryKey(),
-  date: date('date').notNull(),
-  providerId: integer('provider_id').notNull().references(() => providers.id),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  deletedAt: timestamp('deleted_at'),
+export const products = pgTable("products", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  container: integer("container_id").references(() => containers.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at"),
 });
 
-export const incomeDetails = pgTable('income_details', {
-  id: serial('id').primaryKey(),
-  incomeId: integer('income_id').notNull().references(() => income.id),
-  productId: integer('product_id').notNull().references(() => products.id),
+export const incomeStatusEnum = pgEnum("income_status", [
+  "draft",
+  "confirmed",
+  "settled",
+]);
+
+export const income = pgTable("income", {
+  id: serial("id").primaryKey(),
+  date: date("date").notNull(),
+  providerId: integer("provider_id")
+    .notNull()
+    .references(() => providers.id),
+  status: incomeStatusEnum("status").notNull().default("draft"),
+  providerSettlementId: integer("provider_settlement_id"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at"),
+});
+
+export const incomeDetails = pgTable("income_details", {
+  id: serial("id").primaryKey(),
+  incomeId: integer("income_id")
+    .notNull()
+    .references(() => income.id),
+  productId: integer("product_id")
+    .notNull()
+    .references(() => products.id),
   // classificationId: integer('classification_id').notNull().references(() => productClassifications.id),
-  quantity: decimal('quantity', { precision: 10, scale: 2 }).notNull(),
-  price: decimal('price', { precision: 10, scale: 2 }).notNull(),
-  remainingQuantity: decimal('remaining_quantity', { precision: 10, scale: 2 }),
-  createdBy: integer('created_by').references(() => users.id),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  deletedAt: timestamp('deleted_at'),
+  quantity: decimal("quantity", { precision: 10, scale: 2 }).notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  remainingQuantity: decimal("remaining_quantity", { precision: 10, scale: 2 }),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at"),
 });
 
-export const customers = pgTable('customers', {
-  id: serial('id').primaryKey(),
-  name: varchar('name', { length: 100 }).notNull(),
-  phone: varchar('phone', { length: 20 }),
-  email: varchar('email', { length: 255 }),
-  address: text('address'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  deletedAt: timestamp('deleted_at'),
+export const providerSettlementStatusEnum = pgEnum(
+  "provider_settlement_status",
+  ["draft", "confirmed", "paid"],
+);
+
+// Main settlement (liquidation) table
+export const providerSettlements = pgTable("provider_settlements", {
+  id: serial("id").primaryKey(),
+
+  providerId: integer("provider_id")
+    .notNull()
+    .references(() => providers.id),
+
+  incomeId: integer("income_id")
+    .notNull()
+    .references(() => income.id),
+
+  grossAmount: decimal("gross_amount", { precision: 12, scale: 2 }).notNull(),
+
+  commissionAmount: decimal("commission_amount", { precision: 12, scale: 2 })
+    .notNull()
+    .default("0"),
+
+  otherDeductions: decimal("other_deductions", { precision: 12, scale: 2 })
+    .notNull()
+    .default("0"),
+
+  netAmount: decimal("net_amount", { precision: 12, scale: 2 }).notNull(),
+
+  status: providerSettlementStatusEnum("status").notNull().default("draft"),
+
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at"),
 });
 
-export const customerAccounts = pgTable('customer_accounts', {
-  id: serial('id').primaryKey(),
-  customerId: integer('customer_id').notNull().references(() => customers.id),
-  periodStart: timestamp('period_start').notNull(),
-  periodEnd: timestamp('period_end').notNull(),
-  balance: decimal('balance', { precision: 10, scale: 2 }).notNull().default('0'),
+// Settlement detail (split by quality / price)
+export const providerSettlementDetails = pgTable(
+  "provider_settlement_details",
+  {
+    id: serial("id").primaryKey(),
+
+    settlementId: integer("settlement_id")
+      .notNull()
+      .references(() => providerSettlements.id),
+
+    incomeDetailId: integer("income_detail_id")
+      .notNull()
+      .references(() => incomeDetails.id),
+
+    quantity: decimal("quantity", { precision: 10, scale: 2 }).notNull(),
+
+    unitPrice: decimal("unit_price", { precision: 12, scale: 2 }).notNull(),
+
+    subtotal: decimal("subtotal", { precision: 12, scale: 2 }).notNull(),
+
+    reason: text("reason"),
+  },
+);
+
+// Additional expenses / deductions applied to settlement
+export const providerSettlementExpenses = pgTable(
+  "provider_settlement_expenses",
+  {
+    id: serial("id").primaryKey(),
+
+    settlementId: integer("settlement_id")
+      .notNull()
+      .references(() => providerSettlements.id),
+
+    concept: varchar("concept", { length: 100 }).notNull(),
+
+    amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  },
+);
+
+// Payments made to providers for a settlement
+export const providerPayments = pgTable("provider_payments", {
+  id: serial("id").primaryKey(),
+
+  settlementId: integer("settlement_id")
+    .notNull()
+    .references(() => providerSettlements.id),
+
+  date: timestamp("date").defaultNow(),
+
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+
+  paymentType: varchar("payment_type", { length: 20 }).notNull(),
+
+  reference: varchar("reference", { length: 100 }),
+
+  createdBy: integer("created_by").references(() => users.id),
+
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
-
-export const customerOrders = pgTable('customer_orders', {
-  id: serial('id').primaryKey(),
-  customerId: integer('customer_id').notNull().references(() => customers.id),
-  date: timestamp('date').defaultNow().notNull(),
-  createdBy: integer('created_by').references(() => users.id),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  deletedAt: timestamp('deleted_at'),
+export const customers = pgTable("customers", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  phone: varchar("phone", { length: 20 }),
+  email: varchar("email", { length: 255 }),
+  address: text("address"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at"),
 });
 
-export const customerOrderDetails = pgTable('customer_order_details', {
-  id: serial('id').primaryKey(),
-  orderId: integer('order_id').notNull().references(() => customerOrders.id),
-  productId: integer('product_id').notNull().references(() => products.id),
+export const customerAccounts = pgTable("customer_accounts", {
+  id: serial("id").primaryKey(),
+  customerId: integer("customer_id")
+    .notNull()
+    .references(() => customers.id),
+  periodStart: timestamp("period_start").notNull(),
+  periodEnd: timestamp("period_end").notNull(),
+  balance: decimal("balance", { precision: 10, scale: 2 })
+    .notNull()
+    .default("0"),
+});
+
+export const customerOrders = pgTable("customer_orders", {
+  id: serial("id").primaryKey(),
+  customerId: integer("customer_id")
+    .notNull()
+    .references(() => customers.id),
+  date: timestamp("date").defaultNow().notNull(),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at"),
+});
+
+export const customerOrderDetails = pgTable("customer_order_details", {
+  id: serial("id").primaryKey(),
+  orderId: integer("order_id")
+    .notNull()
+    .references(() => customerOrders.id),
+  productId: integer("product_id")
+    .notNull()
+    .references(() => products.id),
   // classificationId: integer('classification_id').notNull().references(() => productClassifications.id),
-  containerId: integer('container_id').notNull().references(() => containers.id),
-  incomeDetailId: integer('income_detail_id').notNull().references(() => incomeDetails.id),
-  quantity: decimal('quantity', { precision: 10, scale: 2 }).notNull(),
-  price: decimal('price', { precision: 10, scale: 2 }).notNull(),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  deletedAt: timestamp('deleted_at'),
+  containerId: integer("container_id")
+    .notNull()
+    .references(() => containers.id),
+  incomeDetailId: integer("income_detail_id")
+    .notNull()
+    .references(() => incomeDetails.id),
+  quantity: decimal("quantity", { precision: 10, scale: 2 }).notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at"),
 });
 
-
-export const payments = pgTable('payments', {
-  id: serial('id').primaryKey(),
-  customerId: integer('customer_id').notNull().references(() => customers.id),
-  date: timestamp('date').defaultNow().notNull(),
-  amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
-  paymentType: varchar('payment_type', { length: 20 }).notNull(),
-  receiptNumber: varchar('receipt_number', { length: 100 }),
-  createdBy: integer('created_by').references(() => users.id),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  deletedAt: timestamp('deleted_at'),
+export const payments = pgTable("payments", {
+  id: serial("id").primaryKey(),
+  customerId: integer("customer_id")
+    .notNull()
+    .references(() => customers.id),
+  date: timestamp("date").defaultNow().notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  paymentType: varchar("payment_type", { length: 20 }).notNull(),
+  receiptNumber: varchar("receipt_number", { length: 100 }),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at"),
 });
 
-
-export const cashMovements = pgTable('cash_movements', {
-  id: serial('id').primaryKey(),
-  date: timestamp('date').defaultNow().notNull(),
-  concept: text('concept').notNull(),
-  type: varchar('type', { length: 10 }).notNull(), // 'INCOME' | 'EXPENSE' | 'INITIAL'
-  amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
+export const cashMovements = pgTable("cash_movements", {
+  id: serial("id").primaryKey(),
+  date: timestamp("date").defaultNow().notNull(),
+  concept: text("concept").notNull(),
+  type: varchar("type", { length: 10 }).notNull(), // 'INCOME' | 'EXPENSE' | 'INITIAL'
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
 });

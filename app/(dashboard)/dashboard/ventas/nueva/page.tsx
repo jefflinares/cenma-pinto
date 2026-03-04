@@ -12,42 +12,54 @@ import { IncomeRow } from "../../proveedores/page";
 const NewSale = () => {
   const [comboBoxSelectedOption, setComboBoxSelectedOption] =
     useState<Entity | null>(null);
+  console.log("🚀 ~ NewSale ~ comboBoxSelectedOption:", comboBoxSelectedOption)
 
   const {
     data: customers,
     isLoading,
-    selectedEntity: selectedCustomer,
-    setSelectedEntity: setSelectedCustomer,
-    isEditing,
-    setIsEditing,
-    isModalOpen,
-    setIsModalOpen,
-    setInitialState,
-    formAction: formActionCustomer,
-    isPending,
-    handleOnDelete: handleOnDeleteCustomer,
-  } = useEntityManager<CustomerRow>({
-    route: "/api/customers",
-    addAction: addCustomer,
-    updateAction: updateCustomer,
-    deleteAction: deleteCustomer,
-    setComboBoxSelectedOption: () => {},
-    comboBoxSelectedOption: null,
-    entityName: "Cliente",
+  //handleOnDelete: () => {},
+  } = useFetchData<CustomerRow>(
+     "/api/customers"
+    );
+
+   const {
+    data: incomes,
+    isLoading: isLoadingIncomes,
+    selectedEntity: selectedIncome,
+    setSelectedEntity: setSelectedIncome,
+    isEditing: isEditingIncome,
+    //setIsEditing: setIsEditingIncome,
+    // isModalOpen: isModalOpenIncome,
+    // setIsModalOpen: setIsModalOpenIncome,
+    // setInitialState: setInitialStateIncome,
+    formAction: formActionIncome,
+    isPending: isPendingIncome,
+    // handleOnDelete: handleOnDeleteCustomer,
+  } = useEntityManager<IncomeRow>({
+    route: "/api/incomes?withAvailableStock=true",
+    addAction: addOrder,
+    updateAction: updateOrder,  
+    deleteAction: deleteOrder,
+    setComboBoxSelectedOption: setComboBoxSelectedOption,
+    comboBoxSelectedOption: comboBoxSelectedOption,
+    entityName: "Orden",
   });
 
-  const { data: incomes } = useFetchData<IncomeRow[]>("/api/incomes");
+  // const { data: incomes } = useFetchData<IncomeRow[]>("/api/incomes?withAvailableStock=true");
 
   return (
     <OrderForm
-      isLoading={isLoading}
-      isPending={isPending}
-      isEditing={isEditing}
+      isLoading={isLoading || isLoadingIncomes}
+      isPending={isPendingIncome}
+      isEditing={isEditingIncome}
       customersData={customers?.map((c) => ({
         id: c.id,
         name: c.name,
       }))}
       incomes={incomes ?? []}
+      formAction={formActionIncome}
+      selectedOption={comboBoxSelectedOption}
+      setComboBoxSelectedOption={setComboBoxSelectedOption}
     />
   );
 };

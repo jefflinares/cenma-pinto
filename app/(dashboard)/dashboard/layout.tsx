@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Users, Factory, DollarSign, Wallet, Settings, Shield, Activity, Menu, Boxes } from 'lucide-react';
+import { Users, Factory, BanknoteArrowUp, DollarSign, Wallet, Settings, Shield, Activity, Menu, Boxes } from 'lucide-react';
 
 export default function DashboardLayout({
   children
@@ -19,6 +19,7 @@ export default function DashboardLayout({
     { href: '/dashboard/general', icon: Settings, label: 'General' },
     { href: '/dashboard/productos', icon: Boxes, label: 'Productos' },
     { href: '/dashboard/proveedores', icon: Factory, label: 'Ingresos de Proveedores' },
+    { href: '/dashboard/pagos', icon: BanknoteArrowUp , label: 'Pagos' },
     { href: '/dashboard/ventas', icon: DollarSign, label: 'Ventas' },
     { href: '/dashboard/cobros', icon: Wallet, label: 'Cobros' },
     { href: '/dashboard/activity', icon: Activity, label: 'Activity' },

@@ -104,6 +104,31 @@ export function useEntityManager<T>({
     }
   };
 
+  const handleOnUpdate = async(data: T, action: (state: ActionState, payload: FormData) => Promise<ActionState>) => {
+    try {
+      debugger
+      const formData = new FormData();
+      Object.entries(data as any).forEach(([key, value]) => {
+        if (typeof value === 'object') {
+          // TODO: handle nested objects/arrays properly
+          formData.append(key, JSON.stringify(value));
+        } else {
+          formData.append(key, String(value));
+        }
+      });
+      const response = await action({} as ActionState, formData);
+      if (response.error) {
+        addToast(response.error, "error", 5000);
+        return;
+      }
+      addToast(`${entityName} actualizado`, "success");
+      mutate(route);
+    } catch (error) {
+      console.error(`Error updating ${entityName}:`, error);
+      addToast(`Ocurrió un error al actualizar el ${entityName}`, "error", 5000);
+    }
+  }
+
   return {
     data,
     error,
@@ -120,6 +145,7 @@ export function useEntityManager<T>({
     formAction,
     isPending,
     handleOnDelete,
+    handleOnUpdate,
     currentPage,
     setCurrentPage,
   };

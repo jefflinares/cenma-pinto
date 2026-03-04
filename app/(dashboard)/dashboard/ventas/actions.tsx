@@ -16,7 +16,7 @@ const customerSchema = z.object({
 export const addCustomer = validatedActionWithUser(
   customerSchema,
   async (data: any, _, user) => {
-    console.log("🚀 ~ data:", data);
+    console.log("🚀 ~ data addCustomer:", data);
     const { name, phone, address, email, error } = data || {};
     try {
       if (error) {

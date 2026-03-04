@@ -1,3 +1,4 @@
+"use server";
 import { validatedActionWithUser } from "@/lib/auth/middleware";
 import z from "zod";
 
@@ -11,6 +12,7 @@ const orderSchema = z
 export const addOrder = validatedActionWithUser(
   orderSchema,
   async (data, _, user) => {
+    console.log("🚀 ~ data addOrder:", data)
     try {
     } catch (error) {}
   }
