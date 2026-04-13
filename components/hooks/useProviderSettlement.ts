@@ -4,11 +4,14 @@ import useFetchData from "@/components/hooks/useFetchData";
 import { IncomeRow } from "@/app/(dashboard)/dashboard/proveedores/page";
 import {
   IncomeDetailRowExtended,
-  ProviderSettlementeRowExtended,
+  SettlementTableRowExtended,
   ProviderSettlementRow,
 } from "@/components/ui/forms/ProviderSettlementTable";
 import { Expense } from "@/components/ui/forms/ProviderSettlementExpenses";
-import { addProviderSettlement } from "@/app/(dashboard)/dashboard/pagos/actions";
+import {
+  addProviderSettlement,
+  updateProviderSettlement,
+} from "@/app/(dashboard)/dashboard/pagos/actions";
 import { Entity } from "../ui/comboBox";
 import { useRouter } from "next/navigation";
 
@@ -65,7 +68,7 @@ export function useProviderSettlement({
   }, [initialId, incomes, mode]);
 
   const [settlementDetails, setSettlementDetails] = useState<
-    IncomeDetailRowExtended[] | ProviderSettlementeRowExtended[]
+    SettlementTableRowExtended[]
   >([]);
   const [settlementExpenses, setSettlementExpenses] = useState<Expense[]>([]);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
@@ -73,7 +76,19 @@ export function useProviderSettlement({
   const errorRef = useRef<HTMLDivElement>(null);
 
   const grossAmount = useMemo(
-    () => settlementDetails.reduce((sum, d) => sum + (d?.subtotal || 0), 0),
+    () =>
+      settlementDetails.reduce((sum, d) => {
+        const val = Number(d?.subtotal ?? 0);
+        return sum + (isNaN(val) ? 0 : val);
+      }, 0),
+    [settlementDetails],
+  );
+  const commissionTotal = useMemo(
+    () =>
+      settlementDetails.reduce((sum, d) => {
+        const val = Number(d?.totalComission ?? 0);
+        return sum + (isNaN(val) ? 0 : val);
+      }, 0),
     [settlementDetails],
   );
   const expenses = useMemo(
@@ -87,14 +102,83 @@ export function useProviderSettlement({
     }, 500);
   };
 
-  const handleSubmit = async (formData: FormData) => {
+  // unified submit handler; called from the form's onSubmit callback
+  const handleSubmit = async () => {
     const errors: string[] = [];
+
     if (settlementDetails.length === 0) {
       setValidationErrors(["Debe agregar al menos un producto al pago."]);
       scrollToErrorNotification();
       return;
     }
-    // …same validation as before…
+
+    // perform the same checks we do interactively inside the table so the
+    // user can't bypass them by never blurring a row or by submitting too fast
+    // * quantities must be non‑negative and > 0
+    // * unit price / commission non‑negative
+    // * for rows with stock available the sum of splits for a given product
+    //   must equal (not exceed) the stock value
+    const qtyTotals: Record<string | number, number> = {};
+    const stocks: Record<
+      string | number,
+      { stock: number; productName: string }
+    > = {};
+
+    settlementDetails.forEach((d, idx) => {
+      const qty = Number((d as any).quantity ?? 0);
+      const price = Number((d as any).unitPrice ?? 0);
+      const comm = Number((d as any).comission ?? 0);
+      const subtotal = Number((d as any).subtotal ?? 0);
+      const productId =
+        (d as any).productId ?? (d as any).incomeDetailId ?? `row${idx}`;
+      const productName = (d as any)?.productName || "";
+      console.log("🚀 ~ handleSubmit ~ productName:", productName);
+      // stock may arrive as a string so coerce to number and only
+      // consider it valid when not NaN
+      const stockRaw = (d as any).stock;
+      const stock = stockRaw != null ? Number(stockRaw) : undefined;
+
+      if (qty < 0) {
+        errors.push(`Detalle ${idx + 1}: cantidad no puede ser negativa.`);
+      }
+      if (qty === 0) {
+        errors.push(`Detalle ${idx + 1}: la cantidad debe ser mayor que cero.`);
+      }
+      if (price < 0) {
+        errors.push(
+          `Detalle ${idx + 1}: precio unitario no puede ser negativo.`,
+        );
+      }
+      if (comm < 0) {
+        errors.push(`Detalle ${idx + 1}: comisión no puede ser negativa.`);
+      }
+      if (subtotal <= 0) {
+        errors.push(`Detalle ${idx + 1}: subtotal inválido.`);
+      }
+
+      qtyTotals[productId] = (qtyTotals[productId] || 0) + qty;
+      if (stock !== undefined && !isNaN(stock)) {
+        stocks[productId] = {
+          stock,
+          productName,
+        };
+      }
+    });
+
+    Object.entries(stocks).forEach(([pid, producto]) => {
+      const { stock: stk, productName } = producto;
+      const total = qtyTotals[pid] || 0;
+      if (total > stk) {
+        errors.push(
+          `Cantidad total para el producto ${productName} excede el stock (${stk}).`,
+        );
+      } else if (total < stk) {
+        errors.push(
+          `Cantidad total para el producto ${productName} debe igualar el stock (${stk}).`,
+        );
+      }
+    });
+
     if (errors.length) {
       setValidationErrors(errors);
       scrollToErrorNotification();
@@ -104,7 +188,38 @@ export function useProviderSettlement({
     setValidationErrors([]);
     setIsPending(true);
     try {
-      const payload = {
+      debugger;
+      // also validate expenses; if the user left a blank row we treat it as
+      // an error so they get feedback rather than dropping silently later.
+      settlementExpenses.forEach((exp, idx) => {
+        const amt = Number(exp.amount ?? 0);
+        if (!exp.concept || String(exp.concept).trim() === "") {
+          errors.push(`Gasto ${idx + 1}: el concepto no puede estar vacío.`);
+        }
+        if (!amt || amt <= 0) {
+          errors.push(`Gasto ${idx + 1}: el monto debe ser mayor que cero.`);
+        }
+      });
+
+      if (errors.length) {
+        setValidationErrors(errors);
+        scrollToErrorNotification();
+        return;
+      }
+
+      // drop any expense rows where the amount is missing or zero; these
+      // entries are usually artifacts left behind when the user deletes the
+      // last row but the component keeps one blank row.
+      const cleanExpenses = settlementExpenses
+        .map((e) => ({
+          ...e,
+          amount: Number(e.amount || 0),
+        }))
+        .filter(
+          (e) => e.amount && e.concept && String(e.concept).trim() !== "",
+        );
+
+      const payload: any = {
         settlement: {
           incomeId: selectedIncome?.id ?? initialId,
           providerId: selectedIncome?.providerId,
@@ -114,24 +229,51 @@ export function useProviderSettlement({
           netAmount: grossAmount - expenses,
         },
         settlementDetails,
-        settlementExpenses,
+        settlementExpenses: cleanExpenses,
       };
+
+      // when editing, include the settlementId so the server knows what to update
+      if (mode === "edit") {
+        payload.settlementId = Number(initialId);
+      }
+
       const fd = new FormData();
       Object.entries(payload as any).forEach(([k, v]) =>
         fd.append(k, typeof v === "object" ? JSON.stringify(v) : String(v)),
       );
-      await addProviderSettlement({}, fd);
+
+      let response: any;
+      if (mode === "create") {
+        response = await addProviderSettlement({}, fd);
+      } else {
+        response = await updateProviderSettlement({}, fd);
+      }
+
+      if (response?.error) {
+        console.log("🚀 ~ handleSubmit ~ response:", response);
+        setValidationErrors([response.error]);
+        scrollToErrorNotification();
+        return;
+      }
+
+      // navigate back after either operation
       router.push("/dashboard/pagos");
     } finally {
       setIsPending(false);
     }
   };
 
-  const formattedIncomeDetail = (income: IncomeRow): string => {
+  const formattedIncomeDetail = (
+    income: IncomeRow | ProviderSettlementRow,
+  ): string => {
+    const details =
+      "incomeDetails" in income
+        ? income.incomeDetails
+        : (income as ProviderSettlementRow).settlementDetails;
     return (
-      income.incomeDetails?.reduce((acc, detail) => {
+      details?.reduce((acc, detail) => {
         if (+detail.quantity === 0) return acc; // skip zero quantity items
-        const productInfo = `${detail.productName} - ${detail.quantity}`;
+        const productInfo = `${"productName" in detail ? detail.productName : ""} - ${detail.quantity}`;
         return acc ? `${acc} | ${productInfo}` : productInfo;
       }, "") ?? ""
     );
@@ -143,7 +285,9 @@ export function useProviderSettlement({
         ?.filter((income) => income.status === "confirmed")
         .map((income) => ({
           id: income.id,
-          name: `ID:  ${income.id} - ${income.providerName} - ${income.formattedDate} - ${formattedIncomeDetail(income)}`,
+          name: `ID:  ${income.id} - ${income.providerName} - ${income.formattedDate} - ${formattedIncomeDetail(
+            income,
+          )}`,
         })) || []
     );
   }, [incomes]);
@@ -166,6 +310,7 @@ export function useProviderSettlement({
     validationErrors,
     isPending,
     grossAmount,
+    commissionTotal,
     expenses,
     errorRef,
     scrollToErrorNotification,

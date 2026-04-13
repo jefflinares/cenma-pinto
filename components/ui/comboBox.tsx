@@ -32,7 +32,7 @@ function ComboBoxWithModal({
   const [options, setOptions] = useState(data || []);
   console.log("🚀 ~ ComboBoxWithModal ~ data:", data)
   console.log("🚀 ~ ComboBoxWithModal ~ options:", options)
-  const [query, setQuery] = useState(selectedOption ? selectedOption.name : "");
+  const [query, setQuery] = useState(selectedOption?.name ?? "");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newOption, setNewOption] = useState({ id: 0, name: "" });
 
@@ -49,6 +49,10 @@ function ComboBoxWithModal({
       setComboBoxSelectedOption(exactMatch);
     }
   }, [query, options, setComboBoxSelectedOption]);
+
+  useEffect(() => {
+    setQuery(selectedOption?.name ?? "");
+  }, [selectedOption]);
 
   const handleAddOption = () => {
     if (newOption.name.trim() !== "") {

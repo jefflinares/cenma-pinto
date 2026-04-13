@@ -38,7 +38,8 @@ export function useEntityManager<T>({
   toastAddText = `${entityName} agregado`,
   toastUpdateText = `${entityName} actualizado`,
 }: UseEntityManagerParams) {
-  const { data, error, isLoading } = useFetchData<T[]>(route);
+  // useFetchData already returns an array of T, so we should pass T not T[]
+  const { data, error, isLoading } = useFetchData<T>(route);
 
   const [selectedEntity, setSelectedEntity] = useState<T | null>(null);
   const [isEditing, setIsEditing] = useState(false);

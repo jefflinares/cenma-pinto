@@ -1,0 +1,2 @@
+ALTER TABLE "provider_settlement_details" RENAME COLUMN "comision" TO "comission";--> statement-breakpoint
+ALTER TABLE "provider_settlement_details" ADD COLUMN "total_comission" numeric(12, 2) DEFAULT '0' NOT NULL;

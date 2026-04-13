@@ -134,6 +134,34 @@
       "when": 1769757989548,
       "tag": "0018_acoustic_warlock",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1773272018381,
+      "tag": "0019_lowly_mojo",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1773277679705,
+      "tag": "0020_ancient_nocturne",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1773278005877,
+      "tag": "0021_cute_kingpin",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1776036151477,
+      "tag": "0022_tough_invaders",
+      "breakpoints": true
     }
   ]
 }

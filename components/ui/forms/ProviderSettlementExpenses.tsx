@@ -11,12 +11,14 @@ type Props = {
   expenses: Expense[];
   onChange: (expenses: Expense[]) => void;
   title?: string;
+  status?: string; // we can use this to disable editing when the settlement is confirmed
 };
 
 export default function ProviderSettlementExpenses({
   expenses,
   onChange,
   title = "Gastos",
+  status,
 }: Props) {
   const [items, setItems] = useState<Expense[]>(expenses);
   const [errors, setErrors] = useState<
@@ -41,7 +43,7 @@ export default function ProviderSettlementExpenses({
   const updateExpense = (
     id: string,
     field: keyof Expense,
-    value: string | number
+    value: string | number,
   ) => {
     const updated = items.map((item) => {
       if (item.id !== id) return item;
@@ -91,113 +93,125 @@ export default function ProviderSettlementExpenses({
     onChange(newItems);
   };
 
-  const total = items.reduce((sum, item) => sum + (Number(item.amount ?? 0)), 0);
+  const total = items.reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
 
   return (
     <div className="space-y-4">
-      {title && <h3 className="text-lg font-semibold text-gray-900">{title}</h3>}
+      {title && (
+        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+      )}
       <div className="overflow-x-auto rounded-xl border border-gray-200">
-      <table className="min-w-full text-sm table-auto">
-        <thead className="bg-gray-100">
-          <tr>
-            <th className="px-3 py-2 text-left">Concepto</th>
-            <th className="px-3 py-2 text-center">Monto Q.</th>
-            <th className="px-3 py-2 text-center min-w-[110px] sm:w-48">
-              Acciones
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.length === 0 && (
+        <table className="min-w-full text-sm table-auto">
+          <thead className="bg-gray-100">
             <tr>
-              <td colSpan={3} className="px-3 py-2 text-center text-gray-500">
-                Sin gastos
-              </td>
+              <th className="px-3 py-2 text-left">Concepto</th>
+              <th className="px-3 py-2 text-center">Monto Q.</th>
+              {status !== "confirmed" && (
+                <th className="px-3 py-2 text-center min-w-[110px] sm:w-48">
+                  Acciones
+                </th>
+              )}
             </tr>
-          )}
-          {items.map((item) => (
-            <tr key={item.id} className="border-t">
-              <td className="px-3 py-2 text-center">
-                <input
-                  type="text"
-                  value={item.concept}
-                  onChange={(e) => updateExpense(item.id, "concept", e.target.value)}
-                  placeholder="Ej: Transporte, Almacenaje..."
-                  className={`w-full rounded-md border px-2 py-1 focus:ring ${
-                    errors[item.id] && errors[item.id]?.field === "concept"
-                      ? "border-red-500 focus:ring-red-200"
-                      : "focus:ring-blue-200"
-                  }`}
-                />
-                {errors[item.id] && errors[item.id]?.field === "concept" ? (
-                  <p className="mt-1 text-xs text-red-600">
-                    {errors[item.id]?.message}
-                  </p>
-                ) : null}
+          </thead>
+          <tbody>
+            {items.length === 0 && (
+              <tr>
+                <td colSpan={3} className="px-3 py-2 text-center text-gray-500">
+                  Sin gastos
+                </td>
+              </tr>
+            )}
+            {items.map((item) => (
+              <tr key={item.id} className="border-t">
+                <td className="px-3 py-2 text-center">
+                  <input
+                    type="text"
+                    readOnly={status === "confirmed"}
+                    value={item.concept}
+                    onChange={(e) =>
+                      updateExpense(item.id, "concept", e.target.value)
+                    }
+                    placeholder="Ej: Transporte, Almacenaje..."
+                    className={`w-full rounded-md border px-2 py-1 focus:ring ${
+                      errors[item.id] && errors[item.id]?.field === "concept"
+                        ? "border-red-500 focus:ring-red-200"
+                        : "focus:ring-blue-200"
+                    }`}
+                  />
+                  {errors[item.id] && errors[item.id]?.field === "concept" ? (
+                    <p className="mt-1 text-xs text-red-600">
+                      {errors[item.id]?.message}
+                    </p>
+                  ) : null}
+                </td>
+                <td className="px-3 py-2 text-center">
+                  <input
+                    type="number"
+                    readOnly={status === "confirmed"}
+                    min={0}
+                    step={1}
+                    value={item.amount ?? ""}
+                    onChange={(e) =>
+                      updateExpense(
+                        item.id,
+                        "amount",
+                        e.target.value === "" ? 0 : Number(e.target.value),
+                      )
+                    }
+                    className={`w-24 rounded-md border px-2 py-1 text-center focus:ring ${
+                      errors[item.id] && errors[item.id]?.field === "amount"
+                        ? "border-red-500 focus:ring-red-200"
+                        : "focus:ring-blue-200"
+                    }`}
+                  />
+                  {errors[item.id] && errors[item.id]?.field === "amount" ? (
+                    <p className="mt-1 text-xs text-red-600">
+                      {errors[item.id]?.message}
+                    </p>
+                  ) : null}
+                </td>
+                {status !== "confirmed" && (
+                  <td className="px-3 py-2 text-center min-w-[110px] sm:w-48">
+                    <button
+                      onClick={(event) => {
+                        event.preventDefault();
+                        removeExpense(item.id);
+                      }}
+                      className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs"
+                      title="Eliminar gasto"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+          <tfoot className="bg-gray-50">
+            <tr>
+              <td className="px-3 py-2 text-right font-semibold align-middle">
+                Total
               </td>
-              <td className="px-3 py-2 text-center">
-                <input
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={item.amount ?? ''}
-                  onChange={(e) =>
-                    updateExpense(
-                      item.id,
-                      "amount",
-                      e.target.value === "" ? 0 : Number(e.target.value)
-                    )
-                  }
-                  className={`w-24 rounded-md border px-2 py-1 text-center focus:ring ${
-                    errors[item.id] && errors[item.id]?.field === "amount"
-                      ? "border-red-500 focus:ring-red-200"
-                      : "focus:ring-blue-200"
-                  }`}
-                />
-                {errors[item.id] && errors[item.id]?.field === "amount" ? (
-                  <p className="mt-1 text-xs text-red-600">
-                    {errors[item.id]?.message}
-                  </p>
-                ) : null}
+              <td className="px-3 py-2 text-center font-bold align-middle">
+                {"Q. " + total.toFixed(2)}
               </td>
-              <td className="px-3 py-2 text-center min-w-[110px] sm:w-48">
-                <button
-                  onClick={(event) => {
-                    event.preventDefault();
-                    removeExpense(item.id);
-                  }}
-                  className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs"
-                  title="Eliminar gasto"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </td>
+              {status !== "confirmed" && (
+                <td className="px-3 py-2 text-center align-middle">
+                  <button
+                    onClick={(event) => {
+                      event.preventDefault();
+                      addExpense();
+                    }}
+                    className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-xs"
+                    title="Agregar gasto"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </td>
+              )}
             </tr>
-          ))}
-        </tbody>
-        <tfoot className="bg-gray-50">
-          <tr>
-            <td className="px-3 py-2 text-right font-semibold align-middle">
-              Total
-            </td>
-            <td className="px-3 py-2 text-center font-bold align-middle">
-              {"Q. " + total.toFixed(2)}
-            </td>
-            <td className="px-3 py-2 text-center align-middle">
-              <button
-                onClick={(event) => {
-                  event.preventDefault();
-                  addExpense();
-                }}
-                className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-xs"
-                title="Agregar gasto"
-              >
-                <Plus size={16} />
-              </button>
-            </td>
-          </tr>
-        </tfoot>
-      </table>
+          </tfoot>
+        </table>
       </div>
     </div>
   );

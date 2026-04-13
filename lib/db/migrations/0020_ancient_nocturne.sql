@@ -1,0 +1,1 @@
+ALTER TABLE "provider_settlement_details" ADD COLUMN "comision" numeric(12, 2) DEFAULT '0' NOT NULL;

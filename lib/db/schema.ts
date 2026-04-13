@@ -8,6 +8,7 @@ import {
   date,
   decimal,
   pgEnum,
+  boolean,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -349,7 +350,14 @@ export const providerSettlementDetails = pgTable(
 
     unitPrice: decimal("unit_price", { precision: 12, scale: 2 }).notNull(),
 
+    comission: decimal("comission", { precision: 12, scale: 2 }).notNull().default("0"),
+
+    totalComission: decimal("total_comission", { precision: 12, scale: 2 }).notNull().default("0"),
+
     subtotal: decimal("subtotal", { precision: 12, scale: 2 }).notNull(),
+
+    // indicates whether this detail row was created by splitting another one
+    splitted: boolean("splitted").notNull().default(false),
 
     reason: text("reason"),
   },
@@ -390,6 +398,7 @@ export const providerPayments = pgTable("provider_payments", {
   createdBy: integer("created_by").references(() => users.id),
 
   createdAt: timestamp("created_at").defaultNow(),
+  deletedAt: timestamp("deleted_at"),
 });
 
 export const customers = pgTable("customers", {

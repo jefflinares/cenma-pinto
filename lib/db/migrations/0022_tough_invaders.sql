@@ -1,0 +1,1 @@
+ALTER TABLE "provider_payments" ADD COLUMN "deleted_at" timestamp;

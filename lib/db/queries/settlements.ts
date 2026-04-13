@@ -35,6 +35,7 @@ export async function getSettlements(params?: SettlementParams) {
       grossAmount: providerSettlements.grossAmount,
       commissionAmount: providerSettlements.commissionAmount,
       netAmount: providerSettlements.netAmount,
+      otherDeductions: providerSettlements.otherDeductions,
       status: providerSettlements.status,
     })
     .from(providerSettlements)
@@ -46,7 +47,7 @@ export async function getSettlements(params?: SettlementParams) {
     .where(
       and(
         isNull(income.deletedAt),
-        settlementId ? eq(providerSettlements.id, settlementId) : undefined,
+        settlementId ? eq(providerSettlements.id, Number(settlementId)) : undefined,
       ),
     ) // Filter out soft-deleted products
     .orderBy(desc(providerSettlements.createdAt)); // Order by creation date
@@ -66,9 +67,13 @@ export async function getSettlements(params?: SettlementParams) {
             incomeDetailId: providerSettlementDetails.incomeDetailId,
             productId: products.id,
             productName: products.name,
+            stock: incomeDetails.quantity,
             quantity: providerSettlementDetails.quantity,
             unitPrice: providerSettlementDetails.unitPrice,
             subtotal: providerSettlementDetails.subtotal,
+            splitted: providerSettlementDetails.splitted,
+            comission: providerSettlementDetails.comission,
+            totalComission: providerSettlementDetails.totalComission,
             reason: providerSettlementDetails.reason,
           })
           .from(providerSettlementDetails)
@@ -91,7 +96,9 @@ export async function getSettlements(params?: SettlementParams) {
   );
 
   settlements.forEach((s) => {
-    console.log("Settlement: ", s, s.settlementDetails, s.settlementExpenses);
+    // `s` is augmented later with details/expenses so its statically inferred type
+    // doesn't include those properties.  Cast to any to avoid compiler complaints.
+    console.log("Settlement: ", s, (s as any).settlementDetails, (s as any).settlementExpenses);
   });
 
   return settlements ?? [];
