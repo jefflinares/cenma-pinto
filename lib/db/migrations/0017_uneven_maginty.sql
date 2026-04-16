@@ -1,0 +1,1 @@
+ALTER TABLE "provider_settlement_details" ADD COLUMN "subtotal" numeric(12, 2) NOT NULL;

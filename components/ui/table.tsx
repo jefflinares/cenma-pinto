@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { act, useState } from "react";
 import { Pencil, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import { Modal } from "./modal";
 import { Input } from "./input";
@@ -10,9 +10,16 @@ export type Column<T> = {
   render?: (value: T[keyof T], row: T) => React.ReactNode;
 };
 
+export type ActionIcon = {
+  action: "edit" | "delete" | "confirm";
+  component: React.ReactNode | null | ((row: any) => React.ReactNode);
+  renderCondition?: (row: any) => boolean
+};
+
 export interface DataTableProps<T> {
   isLoading: boolean;
   columns: Column<T>[];
+  actions?: ActionIcon[];
   data: T[];
   currentPage: number;
   totalItems: number;
@@ -30,6 +37,7 @@ export default function DataTable<T extends EntityWithId>({
   isLoading,
   columns,
   data,
+  actions = [],
   currentPage,
   totalItems,
   pageSize,
@@ -40,38 +48,48 @@ export default function DataTable<T extends EntityWithId>({
   renderNestedContent,
   hasNestedData,
 }: DataTableProps<T>) {
-  console.log("🚀 ~ DataTable ~ data:", data)
+  console.log("🚀 ~ DataTable ~ data:", data);
   const totalPages = Math.ceil(totalItems / pageSize);
 
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [query, setQuery] = useState("");
   const [itemToDelete, setItemToDelete] = React.useState<T | null>(null);
-  const [expandedRows, setExpandedRows] = useState<Set<string | number>>(new Set());
+  const [expandedRows, setExpandedRows] = useState<Set<string | number>>(
+    new Set(),
+  );
 
-const filteredData = data.filter(row => {
-  const rowText = Object.entries(row)
-    .filter(([key, value]) => {
-      // Exclude specific fields that contain objects/arrays
-      const excludedFields = ['trucks', 'orders', 'items', 'payments', 'nestedData'];
-      return !excludedFields.includes(key) && 
-             (typeof value === "string" || 
-              typeof value === "number" || 
-              typeof value === "boolean");
-    })
-    .map(([key, value]) => String(value))
-    .join(" ")
-    .toLowerCase();
-  return rowText.includes(query.toLowerCase());
-});
+  const filteredData = data.filter((row) => {
+    const rowText = Object.entries(row)
+      .filter(([key, value]) => {
+        // Exclude specific fields that contain objects/arrays
+        const excludedFields = [
+          "trucks",
+          "orders",
+          "items",
+          "payments",
+          "nestedData",
+        ];
+        return (
+          !excludedFields.includes(key) &&
+          (typeof value === "string" ||
+            typeof value === "number" ||
+            typeof value === "boolean")
+        );
+      })
+      .map(([key, value]) => String(value))
+      .join(" ")
+      .toLowerCase();
+    return rowText.includes(query.toLowerCase());
+  });
 
-const startIdx = (currentPage - 1) * pageSize;
-const endIdx = startIdx + pageSize;
-const paginatedData = filteredData.slice(startIdx, endIdx);
+  const startIdx = (currentPage - 1) * pageSize;
+  const endIdx = startIdx + pageSize;
+  const paginatedData = filteredData.slice(startIdx, endIdx);
 
-  console.log("🚀 ~ DataTable ~ filteredData:", filteredData)
+  console.log("🚀 ~ DataTable ~ filteredData:", filteredData);
 
   const toggleRowExpansion = (rowId: string | number) => {
-    setExpandedRows(prev => {
+    setExpandedRows((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(rowId)) {
         newSet.delete(rowId);
@@ -83,6 +101,39 @@ const paginatedData = filteredData.slice(startIdx, endIdx);
   };
 
   const isRowExpanded = (rowId: string | number) => expandedRows.has(rowId);
+
+  const editAction = actions.find((action) => action.action === "edit");
+  console.log("🚀 ~ DataTable ~ editAction:", editAction);
+  const deleteAction = actions.find((action) => action.action === "delete");
+
+  const otherActions = actions.filter(
+    (action) => action.action !== "edit" && action.action !== "delete",
+  );
+
+  const editActionComponent = (row: T) => {
+    return (
+      <button
+        onClick={() => onEdit(row)}
+        className="text-blue-500 hover:text-blue-700"
+      >
+        <Pencil size={18} />
+      </button>
+    );
+  };
+
+  const deleteActionComponent = (row: T) => {
+    return (
+      <button
+        onClick={() => {
+          setItemToDelete(row);
+          setIsModalOpen(true);
+        }}
+        className="text-red-500 hover:text-red-700"
+      >
+        <Trash2 size={18} />
+      </button>
+    );
+  };
 
   return (
     <div>
@@ -127,7 +178,6 @@ const paginatedData = filteredData.slice(startIdx, endIdx);
                             onClick={() => toggleRowExpansion(row.id!)}
                             className="text-gray-500 hover:text-gray-700"
                           >
-                            
                             {isRowExpanded(row.id!) ? (
                               <ChevronDown size={16} />
                             ) : (
@@ -147,33 +197,41 @@ const paginatedData = filteredData.slice(startIdx, endIdx);
                       </td>
                     ))}
                     <td className="px-4 py-2 flex space-x-2">
-                      <button
-                        onClick={() => onEdit(row)}
-                        className="text-blue-500 hover:text-blue-700"
-                      >
-                        <Pencil size={18} />
-                      </button>
-                      <button
-                        onClick={() => { setItemToDelete(row); setIsModalOpen(true); }}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                      {otherActions.map((actionIcon, idx) => {
+                        const { action, component, renderCondition } =
+                          actionIcon;
+                        if (renderCondition && !renderCondition(row)) return null;
+                        
+                        const isRenderFunction = typeof component === "function";
+                        const renderedComponent = isRenderFunction ? component(row) : component;
+                        
+                        return <div key={idx}>{renderedComponent}</div>;
+                      })}
+                      {editAction &&
+                        (!editAction.renderCondition ||
+                          editAction.renderCondition(row)) &&
+                        editActionComponent(row)}
+                      {!editAction && editActionComponent(row)}
+                      {deleteAction &&
+                        (!deleteAction.renderCondition ||
+                          deleteAction.renderCondition(row)) &&
+                        deleteActionComponent(row)}
+                      {!deleteAction && deleteActionComponent(row)}
                     </td>
                   </tr>
                   {/* Expanded row content */}
-                  {expandable && isRowExpanded(row.id!) && renderNestedContent && (
-                    <tr>
-                      <td 
-                        colSpan={columns.length + 2} 
-                        className="px-4 py-4 bg-gray-50 border-b"
-                      >
-                        <div className="pl-6">
-                          {renderNestedContent(row)}
-                        </div>
-                      </td>
-                    </tr>
-                  )}
+                  {expandable &&
+                    isRowExpanded(row.id!) &&
+                    renderNestedContent && (
+                      <tr>
+                        <td
+                          colSpan={columns.length + 2}
+                          className="px-4 py-4 bg-gray-50 border-b"
+                        >
+                          <div className="pl-6">{renderNestedContent(row)}</div>
+                        </td>
+                      </tr>
+                    )}
                 </React.Fragment>
               ))
             ) : (
@@ -227,7 +285,8 @@ const paginatedData = filteredData.slice(startIdx, endIdx);
             setItemToDelete(null);
           }}
         >
-          {"¿Estás seguro de que deseas eliminar este elemento? " + itemToDelete?.name}
+          {"¿Estás seguro de que deseas eliminar este elemento? " +
+            itemToDelete?.name}
         </Modal>
       )}
     </div>

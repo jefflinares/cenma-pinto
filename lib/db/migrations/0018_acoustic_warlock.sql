@@ -1,0 +1,1 @@
+ALTER TABLE "income" ADD COLUMN "provider_settlement_id" integer;

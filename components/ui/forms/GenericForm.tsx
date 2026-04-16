@@ -64,6 +64,11 @@ const GenericForm = ({
 
   const renderComboBoxField = (field: GenericFormField) => {
     console.log("🚀 ~ renderComboBoxField ~ selectedOption:", selectedOption);
+    const fallbackSelectedOption =
+      selectedOption ??
+      (field.data || []).find((option) => option.id === field.defaultValue) ??
+      null;
+
     return (
       <>
         <Label htmlFor={field.name} className="mb-2">
@@ -73,14 +78,14 @@ const GenericForm = ({
           type="hidden"
           name={field.name}
           id={field.name}
-          value={selectedOption?.id ?? ""}
+          value={fallbackSelectedOption?.id ?? ""}
         />
         <ComboBoxWithModal
           id={field.name}
           data={field.data || []}
           modalChildren={modalChildren}
           onAddCallBackAction={onAddCallBackAction}
-          selectedOption={selectedOption}
+          selectedOption={fallbackSelectedOption}
           setComboBoxSelectedOption={setComboBoxSelectedOption}
         />
       </>

@@ -1,0 +1,1 @@
+ALTER TABLE "provider_settlement_details" ADD COLUMN "splitted" boolean DEFAULT false NOT NULL;

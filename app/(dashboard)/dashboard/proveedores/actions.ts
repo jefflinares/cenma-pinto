@@ -13,6 +13,7 @@ import {
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { extractProductsIds } from "./util";
+import { error } from "console";
 
 // Define the supplier schema (adjust fields as needed)
 const supplierSchema = z.object({
@@ -210,6 +211,39 @@ export const addIncome = validatedActionWithUser(
           "Error al crear el ingreso. Por favor, inténtelo de nuevo." + error,
         truckId,
         driverName,
+      };
+    }
+  }
+);
+
+const updateIncomeStatusSchema = z.object({
+  id: z.string().min(1).transform(Number),
+  status: z.enum(["draft", "confirmed", "settled"]),
+});
+
+export const updateIncomeStatus = validatedActionWithUser(
+  updateIncomeStatusSchema,
+  async (data, _, user) => {
+    console.log('actualizar estatus')
+    const { id, status } = data;
+    try {
+      const [updatedIncome] = await db
+        .update(incomeTable)
+        .set({
+          status,
+        })
+        .where(eq(incomeTable.id, id))
+        .returning();
+      if (!updatedIncome) {
+        throw new Error("Failed to update income status");
+      }
+      return { ...updatedIncome, success: "Estado del ingreso actualizado" };
+    } catch (error: any) {
+      console.log("🚀 ~ error updating income status:", error);
+      return {
+        error:
+          "Error al actualizar el estado del ingreso. Por favor, inténtelo de nuevo." +
+          error,
       };
     }
   }

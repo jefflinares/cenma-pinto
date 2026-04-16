@@ -71,7 +71,7 @@ async function seed() {
   });
 
   await db.insert(containers).values([
-    { name: 'caja' },
+    { name: 'caja'},
     { name: 'saco' },
     { name: 'costal' },
   ]).onConflictDoNothing();
