@@ -28,16 +28,42 @@ const iconMap: Record<ActivityType, LucideIcon> = {
   [ActivityType.CREATE_PROVIDER]: Settings,
   [ActivityType.UPDATE_PROVIDER]: Settings,
   [ActivityType.DELETE_PROVIDER]: Settings,
-  [ActivityType.UPDATE_CUSTOMER]: Settings,
-  [ActivityType.DELETE_CUSTOMER]: Settings,
   [ActivityType.CREATE_PRODUCT]: Settings,
   [ActivityType.UPDATE_PRODUCT]: Settings,
   [ActivityType.DELETE_PRODUCT]: Settings,
+  [ActivityType.CREATE_INCOME]: Settings,
+  [ActivityType.UPDATE_INCOME]: Settings,
+  [ActivityType.DELETE_INCOME]: Settings,
+  [ActivityType.CREATE_PROVIDER_SETTLEMENT]: Settings,
+  [ActivityType.UPDATE_PROVIDER_SETTLEMENT]: Settings,
+  [ActivityType.DELETE_PROVIDER_SETTLEMENT]: Settings,
+  [ActivityType.CREATE_PROVIDER_SETTLEMENT_DETAIL]: Settings,
+  [ActivityType.UPDATE_PROVIDER_SETTLEMENT_DETAIL]: Settings,
+  [ActivityType.DELETE_PROVIDER_SETTLEMENT_DETAIL]: Settings,
+  [ActivityType.CREATE_PROVIDER_SETTLEMENT_EXPENSE]: Settings,
+  [ActivityType.UPDATE_PROVIDER_SETTLEMENT_EXPENSE]: Settings,
+  [ActivityType.DELETE_PROVIDER_SETTLEMENT_EXPENSE]: Settings,
+  [ActivityType.CREATE_PROVIDER_PAYMENT]: Settings,
+  [ActivityType.UPDATE_PROVIDER_PAYMENT]: Settings,
+  [ActivityType.DELETE_PROVIDER_PAYMENT]: Settings,
+  [ActivityType.CREATE_CUSTOMER]: Settings,
+  [ActivityType.UPDATE_CUSTOMER]: Settings,
+  [ActivityType.DELETE_CUSTOMER]: Settings,
   [ActivityType.CREATE_ORDER]: Settings,
   [ActivityType.UPDATE_ORDER]: Settings,
   [ActivityType.DELETE_ORDER]: Settings,
+  [ActivityType.CREATE_PAYMENT]: Settings,
   [ActivityType.UPDATE_PAYMENT]: Settings,
   [ActivityType.DELETE_PAYMENT]: Settings,
+  [ActivityType.CREATE_CASH_MOVEMENT]: Settings,
+  [ActivityType.UPDATE_CASH_MOVEMENT]: Settings,
+  [ActivityType.DELETE_CASH_MOVEMENT]: Settings,
+  [ActivityType.CREATE_CONTAINER]: Settings,
+  [ActivityType.UPDATE_CONTAINER]: Settings,
+  [ActivityType.DELETE_CONTAINER]: Settings,
+  [ActivityType.CREATE_CLASSIFICATION]: Settings,
+  [ActivityType.UPDATE_CLASSIFICATION]: Settings,
+  [ActivityType.DELETE_CLASSIFICATION]: Settings,
   /*[ActivityType.CREATE_EXPENSE]: Settings,
   [ActivityType.CREATE_DRIVER]: Settings,
   [ActivityType.UPDATE_DRIVER]: Settings,
@@ -118,6 +144,72 @@ function formatAction(action: ActivityType): string {
       return 'You updated a product';
     case ActivityType.DELETE_PRODUCT:
       return 'You deleted a product';
+    case ActivityType.CREATE_INCOME:
+      return 'You created a new income';
+    case ActivityType.UPDATE_INCOME:
+      return 'You updated an income';
+    case ActivityType.DELETE_INCOME:
+      return 'You deleted an income';
+    case ActivityType.CREATE_PROVIDER_SETTLEMENT:
+      return 'You created a provider settlement';
+    case ActivityType.UPDATE_PROVIDER_SETTLEMENT:
+      return 'You updated a provider settlement';
+    case ActivityType.DELETE_PROVIDER_SETTLEMENT:
+      return 'You deleted a provider settlement';
+    case ActivityType.CREATE_PROVIDER_SETTLEMENT_DETAIL:
+      return 'You created a provider settlement detail';
+    case ActivityType.UPDATE_PROVIDER_SETTLEMENT_DETAIL:
+      return 'You updated a provider settlement detail';
+    case ActivityType.DELETE_PROVIDER_SETTLEMENT_DETAIL:
+      return 'You deleted a provider settlement detail';
+    case ActivityType.CREATE_PROVIDER_SETTLEMENT_EXPENSE:
+      return 'You created a provider settlement expense';
+    case ActivityType.UPDATE_PROVIDER_SETTLEMENT_EXPENSE:
+      return 'You updated a provider settlement expense';
+    case ActivityType.DELETE_PROVIDER_SETTLEMENT_EXPENSE:
+      return 'You deleted a provider settlement expense';
+    case ActivityType.CREATE_PROVIDER_PAYMENT:
+      return 'You created a provider payment';
+    case ActivityType.UPDATE_PROVIDER_PAYMENT:
+      return 'You updated a provider payment';
+    case ActivityType.DELETE_PROVIDER_PAYMENT:
+      return 'You deleted a provider payment';
+    case ActivityType.CREATE_CUSTOMER:
+      return 'You created a new customer';
+    case ActivityType.UPDATE_CUSTOMER:
+      return 'You updated a customer';
+    case ActivityType.DELETE_CUSTOMER:
+      return 'You deleted a customer';
+    case ActivityType.CREATE_ORDER:
+      return 'You created a new order';
+    case ActivityType.UPDATE_ORDER:
+      return 'You updated an order';
+    case ActivityType.DELETE_ORDER:
+      return 'You deleted an order';
+    case ActivityType.CREATE_PAYMENT:
+      return 'You created a new payment';
+    case ActivityType.UPDATE_PAYMENT:
+      return 'You updated a payment';
+    case ActivityType.DELETE_PAYMENT:
+      return 'You deleted a payment';
+    case ActivityType.CREATE_CASH_MOVEMENT:
+      return 'You created a cash movement';
+    case ActivityType.UPDATE_CASH_MOVEMENT:
+      return 'You updated a cash movement';
+    case ActivityType.DELETE_CASH_MOVEMENT:
+      return 'You deleted a cash movement';
+    case ActivityType.CREATE_CONTAINER:
+      return 'You created a new container';
+    case ActivityType.UPDATE_CONTAINER:
+      return 'You updated a container';
+    case ActivityType.DELETE_CONTAINER:
+      return 'You deleted a container';
+    case ActivityType.CREATE_CLASSIFICATION:
+      return 'You created a new classification';
+    case ActivityType.UPDATE_CLASSIFICATION:
+      return 'You updated a classification';
+    case ActivityType.DELETE_CLASSIFICATION:
+      return 'You deleted a classification';
     default:
       return 'Unknown action occurred';
   }

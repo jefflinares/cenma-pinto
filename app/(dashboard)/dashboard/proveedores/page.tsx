@@ -146,7 +146,7 @@ export default function SuppliersPage() {
         data={suppliers?.map((supplier) => ({
           id: supplier.id,
           name: supplier.name,
-        }))}
+        })) ?? []}
         providersData={suppliers?.map((supplier) => ({
           id: supplier.id,
           name: supplier.name,

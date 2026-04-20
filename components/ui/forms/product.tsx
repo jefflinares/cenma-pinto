@@ -75,6 +75,7 @@ const Product = ({
       setComboBoxSelectedOption={setComboBoxSelectedOption}
       modalChildren={modalChildren}
       onAddCallBackAction={onAddCallBackAction}
+      data={data}
     />
   );
 };

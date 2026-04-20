@@ -93,10 +93,17 @@ export default function SalesPage() {
           id: c.id,
           name: c.name
         }))}
+        incomes={[]}
+        productsData={[]}
+        data={[]}
         isPending={isPendingOrder}
         isEditing={isEditingOrder}
+        isLoading={isLoadingOrder}
         setIsModalOpen={setIsModalOpenOrder}
         setIsEditing={setIsEditingOrder}
+        selectedOption={null}
+        setComboBoxSelectedOption={() => {}}
+        modalChildren={<></>}
       />
     )
   }
@@ -143,16 +150,15 @@ export default function SalesPage() {
           setInitialState({ name: "" });
         }}
       />
-      <EntityListSection<CustomerRow>
+      <EntityListSection<OrderRow>
         title="Ventas"
         addButtonText='Agregar nueva venta'
         isLoading={isLoadingOrder}
         data={orders ?? []}
         columns={[
           { header: "Número Orden", field: "id" },
-          { header: "Cliente", field: "name" },
-          { header: "Fecha", field: "phone" },
-          { header: "Total", field: "email" },
+          { header: "Cliente ID", field: "customerId" },
+          { header: "Fecha", field: "date" },
           // { header: "Dirección", field: "address" },
         ]}
         currentPage={1}

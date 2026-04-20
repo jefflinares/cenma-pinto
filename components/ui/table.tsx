@@ -286,7 +286,7 @@ export default function DataTable<T extends EntityWithId>({
           }}
         >
           {"¿Estás seguro de que deseas eliminar este elemento? " +
-            itemToDelete?.name}
+            ((itemToDelete as any)?.name || itemToDelete?.id)}
         </Modal>
       )}
     </div>

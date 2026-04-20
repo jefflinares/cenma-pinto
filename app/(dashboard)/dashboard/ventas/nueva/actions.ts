@@ -1,5 +1,5 @@
 "use server";
-import { validatedActionWithUser } from "@/lib/auth/middleware";
+import { validatedActionWithUser, ActionState } from "@/lib/auth/middleware";
 import z from "zod";
 
 const orderSchema = z
@@ -11,10 +11,13 @@ const orderSchema = z
 
 export const addOrder = validatedActionWithUser(
   orderSchema,
-  async (data, _, user) => {
+  async (data, _, user): Promise<ActionState> => {
     console.log("🚀 ~ data addOrder:", data)
     try {
-    } catch (error) {}
+      return { success: "Order created successfully" };
+    } catch (error) {
+      return { error: "Failed to create order" };
+    }
   }
 );
 
@@ -28,9 +31,12 @@ const updateOrderSchema = z
 
 export const updateOrder = validatedActionWithUser(
   updateOrderSchema,
-  async (data, _, user) => {
+  async (data, _, user): Promise<ActionState> => {
     try {
-    } catch (error) {}
+      return { success: "Order updated successfully" };
+    } catch (error) {
+      return { error: "Failed to update order" };
+    }
   }
 );
 
@@ -40,8 +46,11 @@ const deleteOrderSchema = z.object({
 
 export const deleteOrder = validatedActionWithUser(
   deleteOrderSchema,
-  async (data, _, user) => {
+  async (data, _, user): Promise<ActionState> => {
     try {
-    } catch (error) {}
+      return { success: "Order deleted successfully" };
+    } catch (error) {
+      return { error: "Failed to delete order" };
+    }
   }
 );

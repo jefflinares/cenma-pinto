@@ -80,6 +80,7 @@ const CustomerForm = ({
       }}
       submitText="Registrar Cliente"
       editText="Actualizar Cliente"
+      data={[]}
     />
   );
 };
