@@ -71,9 +71,9 @@ async function seed() {
   });
 
   await db.insert(containers).values([
-    { name: 'caja'},
-    { name: 'saco' },
-    { name: 'costal' },
+    { name: 'caja', capacity: '75', unit: 'libras' },
+    { name: 'saco', capacity: '40', unit: 'libras' },
+    { name: 'costal', capacity: '40', unit: 'libras' },
   ]).onConflictDoNothing();
   // await createStripeProducts();
 }

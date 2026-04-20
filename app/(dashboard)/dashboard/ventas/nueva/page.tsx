@@ -55,11 +55,17 @@ const NewSale = () => {
       customersData={customers?.map((c) => ({
         id: c.id,
         name: c.name,
-      }))}
+      })) ?? []}
       incomes={incomes ?? []}
+      productsData={[]}
+      data={[]}
       formAction={formActionIncome}
+      state={{} as any}
+      setIsModalOpen={() => {}}
+      setIsEditing={() => {}}
       selectedOption={comboBoxSelectedOption}
       setComboBoxSelectedOption={setComboBoxSelectedOption}
+      modalChildren={<></>}
     />
   );
 };

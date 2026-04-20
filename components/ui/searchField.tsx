@@ -11,10 +11,11 @@ export type Entity = {
 type ComboBoxWithModalProps = React.ComponentProps<"input"> & {
   data?: Entity[];
   modalChildren: React.ReactNode;
+  setIsModalOpen?: (open: boolean) => void;
 };
 
 
-function SearchField({ className, data, type, modalChildren, ...props }: ComboBoxWithModalProps) {
+function SearchField({ className, data, type, modalChildren, setIsModalOpen, ...props }: ComboBoxWithModalProps) {
   const [options, setOptions] = useState(data || [
     { id: 1, name: "Pedro Pérez" },
     { id: 2, name: "Julio Gomez" },
@@ -54,12 +55,14 @@ function SearchField({ className, data, type, modalChildren, ...props }: ComboBo
         ) : (
           <div className="px-3 py-2 text-gray-500 flex justify-between items-center">
             <span>No se encontró la opción</span>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="ml-2 text-blue-600 hover:underline text-sm"
-            >
-              Agregar nueva
-            </button>
+            {setIsModalOpen && (
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="ml-2 text-blue-600 hover:underline text-sm"
+              >
+                Agregar nueva
+              </button>
+            )}
           </div>
         )}
       </div>

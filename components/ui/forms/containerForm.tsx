@@ -74,6 +74,7 @@ const ContainerForm = ({
       }}
       submitText="Registrar Contenedor"
       editText="Actualizar Contenedor"
+      data={[]}
     />
   );
 };

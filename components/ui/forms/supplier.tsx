@@ -71,6 +71,7 @@ const Supplier = ({
       }}
       submitText="Registrar Proveedor"
       editText="Actualizar Proveedor"
+      data={[]}
     />
   );
 };
