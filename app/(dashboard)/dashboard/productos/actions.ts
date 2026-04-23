@@ -66,18 +66,16 @@ export const addProduct = validatedActionWithUser(
 
 const containerSchema = z.object({
   name: z.string().min(2).max(50),
-  capacity: z.string().min(1),
-  unit: z.string().min(1).max(20),
+  unitPrice: z.string().min(1),
 });
 
 export const addContainer = validatedActionWithUser(
   containerSchema,
   async (data, _, user) => {
-    const { name, capacity, unit } = data;
+    const { name, unitPrice } = data;
     const newContainer = {
       name,
-      capacity,
-      unit,
+      unitPrice,
     };
     let createdContainer;
     try {
@@ -94,7 +92,7 @@ export const addContainer = validatedActionWithUser(
       console.log("🚀 ~ error creating container:", error);
       return {
         error:
-          "Error al crear el contenedor. Por favor, inténtelo de nuevo." +
+          "Error al crear el envase. Por favor, inténtelo de nuevo." +
           error,
         name,
       };
@@ -104,7 +102,7 @@ export const addContainer = validatedActionWithUser(
     // TODO teamId should not be hardcoded
     const teamId = 1;
     await logActivity(teamId, user.id, ActivityType.CREATE_CONTAINER);
-    return { name, success: "Contenedor creado correctamente" };
+    return { name, success: "Envase creado correctamente" };
   },
   'addContainer'
 );
@@ -150,34 +148,33 @@ export const updateProduct = validatedActionWithUser(
 const updateContainerSchema = z.object({
   id: z.string().min(1).transform(Number),
   name: z.string().min(2).max(50),
-  capacity: z.string().min(1),
-  unit: z.string().min(1).max(20),
+  unitPrice: z.string().min(1),
 });
 
 export const updateContainer = validatedActionWithUser(
   updateContainerSchema,
   async (data, _, user) => {
     console.log("DATA RECIBIDA EN UPDATE:", data);
-    const { name, id, capacity, unit } = data;
+    const { name, id, unitPrice } = data;
     const containerId = Number(id);
     console.log("ID COMO NUMERO:", containerId);
 
     try {
       const [container] = await db
         .update(containers)
-        .set({ name, capacity, unit, updatedAt: sql`now()` })
+        .set({ name, unitPrice, updatedAt: sql`now()` })
         .where(eq(containers.id, containerId))
         .returning();
       console.log("RESULTADO UPDATE:", container);
       if (!container) {
         throw new Error("Failed to update container");
       }
-      return { ...container, success: "Contenedor actualizado correctamente" };
+      return { ...container, success: "Envase actualizado correctamente" };
     } catch (error: any) {
       console.log("🚀 ~ error updating container:", error);
       return {
         error:
-          "Error al actualizar el contenedor. Por favor, inténtelo de nuevo." +
+          "Error al actualizar el envase. Por favor, inténtelo de nuevo." +
           error,
         name,
       };
@@ -246,7 +243,7 @@ export const deleteContainer = validatedActionWithUser(
 
       if (associatedProducts.length > 0) {
         throw new Error(
-          "No se puede eliminar el contenedor porque tiene productos asociados."
+          "No se puede eliminar el envase porque tiene productos asociados."
         );
       }
 
@@ -258,12 +255,12 @@ export const deleteContainer = validatedActionWithUser(
       if (!container) {
         throw new Error("Failed to delete container");
       }
-      return { id, success: "Contenedor eliminado correctamente" };
+      return { id, success: "Envase eliminado correctamente" };
     } catch (error: any) {
       console.log("🚀 ~ error deleting container:", error);
       return {
         error:
-          "Error al eliminar el contenedor. Por favor, inténtelo de nuevo." +
+          "Error al eliminar el envase. Por favor, inténtelo de nuevo." +
           error,
       };
     }

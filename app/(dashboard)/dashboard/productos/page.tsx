@@ -73,7 +73,7 @@ export default function ProductsPage() {
     deleteAction: deleteContainer,
     setComboBoxSelectedOption,
     comboBoxSelectedOption,
-    entityName: "Contenedor",
+    entityName: "Envase",
   });
 
   const addNewProductComponent = (state: ProductActionState) => {
@@ -95,7 +95,7 @@ export default function ProductsPage() {
         onAddCallBackAction={() => {
           // Aquí puedes manejar la acción de agregar un nuevo proveedor
           console.log(
-            "callback para cerrar el formulario del producto y permitir que se abra el de contenedores"
+            "callback para cerrar el formulario del producto y permitir que se abra el de envases"
           );
           setIsModalOpen(false);
           setIsContainerModalOpen(true);
@@ -106,7 +106,7 @@ export default function ProductsPage() {
 
   const addNewContainerComponent = (state: ProductActionState) => {
     return AddOrEditEntityComponent(
-      isContainerEditing ? "Editar Contenedor" : "Agregar Contenedor",
+      isContainerEditing ? "Editar Envase" : "Agregar Envase",
       <ContainerForm
         formAction={formActionContainer}
         state={state}
@@ -121,14 +121,15 @@ export default function ProductsPage() {
   return (
     <>
       <EntityListSection<Container>
-        title="Contenedores"
-        addButtonText="Agregar nuevo Contenedor"
+        title="Envases"
+        addButtonText="Agregar nuevo Envase"
         isLoading={isLoadingContainers}
         data={containers ?? []}
         columns={[
           { header: "Nombre", field: "name" },
-          { header: "Capacidad", field: "capacity" },
-          { header: "Unidad", field: "unit" },
+          // { header: "Capacidad", field: "capacity" },
+          // { header: "Unidad", field: "unit" },
+          { header: "Precio por Envase", field: "unitPrice" },
         ]}
         currentPage={1}
         totalItems={containers?.length || 0}
@@ -165,7 +166,7 @@ export default function ProductsPage() {
         data={products ?? []}
         columns={[
           { header: "Nombre", field: "name" },
-          { header: "Contenedor", field: "container" },
+          { header: "Envase", field: "container" }
         ]}
         currentPage={1}
         totalItems={products?.length || 0}

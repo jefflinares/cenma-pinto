@@ -243,8 +243,9 @@ export const providers = pgTable("providers", {
 export const containers = pgTable("containers", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 50 }).notNull(),
-  capacity: decimal("capacity", { precision: 10, scale: 2 }).notNull(),
-  unit: varchar("unit", { length: 20 }).notNull(), // e.g., 'kg', 'liters'
+  // capacity: decimal("capacity", { precision: 10, scale: 2 }).default("0"),
+  // unit: varchar("unit", { length: 20 }).default(""), // e.g., 'kg', 'liters'
+  unitPrice: decimal("unit_price", { precision: 12, scale: 2 }).default("0"), // optional price per unit for costing
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   deletedAt: timestamp("deleted_at"),
