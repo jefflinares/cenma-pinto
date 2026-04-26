@@ -50,10 +50,10 @@ const Product = ({
     },
     { 
       name: "container",
-      label: "Contenedor",
+      label: "Envase",
       type: "combobox",
       required: true,
-      placeholder: "Seleccione un contenedor",
+      placeholder: "Seleccione un envase",
       data,
       defaultValue: state?.container || "",
     }
