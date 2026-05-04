@@ -9,6 +9,8 @@ import {
   ActivityType,
   containers,
   incomeDetails,
+  productClassification,
+  type NewProductClassification,
 } from "@/lib/db/schema";
 import { validatedActionWithUser } from "@/lib/auth/middleware";
 import { logActivity } from "@/app/(login)/actions";
@@ -17,16 +19,20 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 const productSchema = z.object({
   name: z.string().min(2).max(255),
   container: z.string().min(1).transform(Number),
+  productClassification: z.string().optional().transform((value) =>
+    value ? Number(value) : undefined
+  ),
 });
 
 export const addProduct = validatedActionWithUser(
   productSchema,
   async (data, _, user) => {
-    const { name, container } = data;
+    const { name, container, productClassification } = data;
 
     const newProduct: NewProduct = {
       name,
       container,
+      productClassification,
     };
     let createdProduct;
     try {
@@ -111,20 +117,37 @@ const updateProductSchema = z.object({
   id: z.string().min(1).transform(Number),
   name: z.string().min(2).max(255),
   container: z.string().min(1).transform(Number),
+  productClassification: z
+    .string()
+    .optional()
+    .transform((value) => {
+      if (value === undefined) return undefined;
+      return value === "" ? null : Number(value);
+    }),
 });
 
 export const updateProduct = validatedActionWithUser(
   updateProductSchema,
   async (data, _, user) => {
     console.log("DATA RECIBIDA EN UPDATE:", data);
-    const { name, container, id } = data;
+    const { name, container, productClassification, id } = data;
     const productId = Number(id);
     console.log("ID COMO NUMERO:", productId);
 
     try {
+      const updateData: Record<string, any> = {
+        name,
+        container,
+        updatedAt: sql`now()`,
+      };
+
+      if (productClassification !== undefined) {
+        updateData.productClassification = productClassification;
+      }
+
       const [product] = await db
         .update(products)
-        .set({ name, container, updatedAt: sql`now()` })
+        .set(updateData)
         .where(eq(products.id, productId))
         .returning();
       console.log("RESULTADO UPDATE:", product);
@@ -266,4 +289,123 @@ export const deleteContainer = validatedActionWithUser(
     }
   },
   'deleteContainer'
+);
+
+// ProductClassification Actions
+const productClassificationSchema = z.object({
+  name: z.string().min(2).max(100),
+  svgIcon: z.string().optional().nullable(),
+});
+
+export const addProductClassification = validatedActionWithUser(
+  productClassificationSchema,
+  async (data, _, user) => {
+    const { name, svgIcon } = data;
+
+    const newProductClassification: NewProductClassification = {
+      name,
+      svgIcon: svgIcon || null,
+    };
+    let createdClassification;
+    try {
+      const [classificationCreated] = await db
+        .insert(productClassification)
+        .values(newProductClassification)
+        .returning();
+
+      if (!classificationCreated) {
+        throw new Error("Failed to create product classification");
+      }
+      createdClassification = classificationCreated;
+    } catch (error: any) {
+      if (error?.code === "23505") {
+        // Unique constraint violation
+        return {
+          error: `Ya existe una clasificación con el nombre "${name}".`,
+          name,
+        };
+      }
+      console.log("🚀 ~ error creating product classification:", error);
+      return {
+        error:
+          "Error al crear la clasificación. Por favor, inténtelo de nuevo." + error,
+        name,
+      };
+    }
+
+    console.log("Product Classification Created");
+    // TODO teamId should not be hardcoded
+    const teamId = 1;
+    await logActivity(teamId, user.id, ActivityType.CREATE_PRODUCT);
+    return { name, success: "Clasificación creada correctamente" };
+  },
+  'addProductClassification'
+);
+
+const updateProductClassificationSchema = z.object({
+  id: z.string().min(1).transform(Number),
+  name: z.string().min(2).max(100),
+  svgIcon: z.string().optional().nullable(),
+});
+
+export const updateProductClassification = validatedActionWithUser(
+  updateProductClassificationSchema,
+  async (data, _, user) => {
+    console.log("DATA RECIBIDA EN UPDATE:", data);
+    const { name, id, svgIcon } = data;
+    const classificationId = Number(id);
+    console.log("ID COMO NUMERO:", classificationId);
+
+    try {
+      const [classification] = await db
+        .update(productClassification)
+        .set({ name, svgIcon: svgIcon || null, updatedAt: sql`now()` })
+        .where(eq(productClassification.id, classificationId))
+        .returning();
+      console.log("RESULTADO UPDATE:", classification);
+      if (!classification) {
+        throw new Error("Failed to update product classification");
+      }
+      return { ...classification, success: "Clasificación actualizada correctamente" };
+    } catch (error: any) {
+      console.log("🚀 ~ error updating product classification:", error);
+      return {
+        error:
+          "Error al actualizar la clasificación. Por favor, inténtelo de nuevo." +
+          error,
+        name,
+      };
+    }
+  },
+  'updateProductClassification'
+);
+
+const deleteProductClassificationSchema = z.object({
+  id: z.string().min(1).transform(Number),
+});
+
+export const deleteProductClassification = validatedActionWithUser(
+  deleteProductClassificationSchema,
+  async (data, _, user) => {
+    const { id } = data;
+    try {
+      const [classification] = await db
+        .update(productClassification)
+        .set({ deletedAt: sql`now()` })
+        .where(eq(productClassification.id, id))
+        .returning();
+      if (!classification) {
+        throw new Error("Failed to delete product classification");
+      }
+      return { id, success: "Clasificación eliminada correctamente" };
+    } catch (error: any) {
+      console.log("🚀 ~ error deleting product classification:", error);
+      return {
+        error:
+          "Error al eliminar la clasificación. Por favor, inténtelo de nuevo." +
+          error,
+      };
+    }
+  },
+  'deleteProductClassification'
 );

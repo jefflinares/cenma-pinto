@@ -169,6 +169,20 @@
       "when": 1776973375882,
       "tag": "0023_superb_glorian",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1777239912118,
+      "tag": "0024_young_ultimatum",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1777343452164,
+      "tag": "0025_damp_susan_delgado",
+      "breakpoints": true
     }
   ]
 }

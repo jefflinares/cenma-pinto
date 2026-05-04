@@ -1,4 +1,4 @@
-import React, { Suspense } from "react";
+import React, { Suspense, useState, useRef } from "react";
 import { Label } from "../label";
 import { Input } from "../input";
 import { Button } from "../button";
@@ -8,17 +8,21 @@ import {
   Entity,
   type ComboBoxWithModalProps,
 } from "../comboBox";
+import CarouselFilter, { type CarouselFilterItem } from "../CarouselFilter";
 
 export type GenericFormField = {
   name: string;
   label: string;
   type?: string;
-  data?: Entity[]; // For ComboBoxWithModal
+  data?: Entity[] | CarouselFilterItem[]; // For ComboBoxWithModal and CarouselFilter
   placeholder?: string;
   required?: boolean;
-  defaultValue?: string | number;
+  defaultValue?: string | number | (string | number)[];
   hidden?: boolean;
   props?: Record<string, any>;
+  multiSelect?: boolean; // For carousel
+  showIcon?: boolean; // For carousel
+  showText?: boolean; // For carousel
 };
 
 export type GenericFormRowField = {
@@ -62,6 +66,57 @@ const GenericForm = ({
 }: GenericFormProps) => {
   console.log("🚀 ~ GenericForm ~ state:", state);
 
+  // Helper function to get carousel initial state
+  const getCarouselInitialState = (field: GenericFormField) => {
+    if (field.type === "carousel") {
+      const defaultValue = field.defaultValue;
+      return Array.isArray(defaultValue)
+        ? defaultValue
+        : defaultValue
+          ? [defaultValue]
+          : [];
+    }
+    return null;
+  };
+
+  // State for carousel selections - needed for visual updates
+  const [carouselSelections, setCarouselSelections] = useState<
+    Record<string, (string | number)[]>
+  >(() => {
+    const initialState: Record<string, (string | number)[]> = {};
+    fields.forEach((fieldOrRow) => {
+      if ("type" in fieldOrRow && fieldOrRow.type !== "row") {
+        const field = fieldOrRow as GenericFormField;
+        const carouselState = getCarouselInitialState(field);
+        if (carouselState !== null) {
+          initialState[field.name] = carouselState;
+        }
+      } else if ("type" in fieldOrRow && fieldOrRow.type === "row") {
+        const rowField = fieldOrRow as GenericFormRowField;
+        rowField.fields.forEach((field) => {
+          const carouselState = getCarouselInitialState(field);
+          if (carouselState !== null) {
+            initialState[field.name] = carouselState;
+          }
+        });
+      }
+    });
+    return initialState;
+  });
+
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Wrap formAction to add carousel data
+  const handleFormAction = (formData: FormData) => {
+    // Add carousel selections to formData
+    Object.entries(carouselSelections).forEach(([fieldName, selectedIds]) => {
+      // If single-select, use the first item; when deselected, set an empty value to clear the field
+      const value = selectedIds.length > 0 ? selectedIds[0] : "";
+      formData.set(fieldName, String(value));
+    });
+    formAction(formData);
+  };
+
   const renderComboBoxField = (field: GenericFormField) => {
     console.log("🚀 ~ renderComboBoxField ~ selectedOption:", selectedOption);
     const fallbackSelectedOption =
@@ -93,6 +148,9 @@ const GenericForm = ({
   };
 
   const renderInputField = (field: GenericFormField) => {
+    // Ensure defaultValue is string or number, not an array
+    const defaultVal = Array.isArray(field.defaultValue) ? "" : (field.defaultValue ?? "");
+    
     return (
       <>
         <Label htmlFor={field.name} className="mb-2">
@@ -101,11 +159,36 @@ const GenericForm = ({
         <Input
           id={field.name}
           name={field.name}
-          type={field.type || "text"}
+          type={field.type && field.type !== "combobox" && field.type !== "carousel" ? field.type : "text"}
           placeholder={field.placeholder}
-          defaultValue={field.defaultValue ?? ""}
+          defaultValue={defaultVal}
           required={field.required}
           {...field.props}
+        />
+      </>
+    );
+  };
+
+  const renderCarouselField = (field: GenericFormField) => {
+    const items = field.data as CarouselFilterItem[];
+    const selectedItems = carouselSelections[field.name] || [];
+
+    return (
+      <>
+        <Label className="mb-2">{field.label}</Label>
+        <CarouselFilter
+          items={items || []}
+          selectedItems={selectedItems}
+          onSelectionChange={(newSelected) => {
+            // Update state for visual feedback (re-render)
+            setCarouselSelections((prev) => ({
+              ...prev,
+              [field.name]: newSelected,
+            }));
+          }}
+          multiSelect={field.multiSelect ?? true}
+          showIcon={field.showIcon ?? true}
+          showText={field.showText ?? true}
         />
       </>
     );
@@ -115,8 +198,12 @@ const GenericForm = ({
     if (field.type === "combobox") {
       return renderComboBoxField(field);
     }
+    if (field.type === "carousel") {
+      return renderCarouselField(field);
+    }
     return renderInputField(field);
   };
+
   const renderRowField = (rowField: GenericFormRowField) => {
     // Filter out hidden fields to get the actual visible field count
     const visibleFields = rowField.fields.filter((field) => !field.hidden);
@@ -200,7 +287,7 @@ const GenericForm = ({
   };
 
   return (
-    <form className="space-y-4" action={formAction}>
+    <form className="space-y-4" action={handleFormAction} ref={formRef}>
       <Suspense fallback={<div>Cargando...</div>}>{renderFields()}</Suspense>
       {state.error && <p className="text-red-500 text-sm">{state.error}</p>}
       {state.success && isEditing && (

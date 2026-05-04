@@ -1,6 +1,7 @@
 import React from "react"
 import GenericForm from "./GenericForm";
 import { ComboBoxWithModalProps } from "../comboBox";
+import type { CarouselFilterItem } from "../CarouselFilter";
 
 export type ProductActionState = {
   id?: string | number;
@@ -21,6 +22,7 @@ type ProductProps = ProductFormBaseProps & ComboBoxWithModalProps & {
   isPending: boolean;
   setIsModalOpen: (open: boolean) => void;
   setIsEditing: (editing: boolean) => void;
+  classificationOptions: CarouselFilterItem[];
 };
 
 const Product = ({
@@ -31,6 +33,7 @@ const Product = ({
   setIsModalOpen,
   setIsEditing,
   data,
+  classificationOptions,
   setComboBoxSelectedOption,
   selectedOption,
   modalChildren,
@@ -56,7 +59,17 @@ const Product = ({
       placeholder: "Seleccione un envase",
       data,
       defaultValue: state?.container || "",
-    }
+    },
+    {
+      name: "productClassification",
+      label: "Clasificación",
+      type: "carousel",
+      data: classificationOptions,
+      defaultValue: state?.productClassificationId ? [state.productClassificationId] : [],
+      multiSelect: false,
+      showIcon: true,
+      showText: true,
+    },
   ];
   return (
     <GenericForm

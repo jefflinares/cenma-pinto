@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import ProductOrContainerForm, {
   ProductActionState,
 } from "@/components/ui/forms/product";
@@ -10,17 +10,34 @@ import {
   deleteProduct,
   updateContainer,
   updateProduct,
+  addProductClassification,
+  updateProductClassification,
+  deleteProductClassification,
 } from "./actions";
-import { Container, Product } from "@/lib/db/schema";
+import { Container, Product, ProductClassification } from "@/lib/db/schema";
 import { EntityListSection } from "@/components/ui/EntityListSection";
 import AddOrEditEntityComponent from "@/components/ui/forms/addOrEditForm";
 import ContainerForm, {
   ContainerActionState,
 } from "@/components/ui/forms/containerForm";
+import ProductClassificationForm, {
+  ProductClassificationActionState,
+} from "@/components/ui/forms/productClassificationForm";
 import { useEntityManager } from "@/components/hooks/useEntityManager";
 import { Entity } from "@/components/ui/comboBox";
+import { getIcon } from "@/lib/icons/classificationIcons";
 
-export type ProductRow = Product & { containerId?: string | number };
+export type ProductRow = Product & {
+  containerId?: string | number;
+  productClassification?: string;
+  productClassificationId?: string | number;
+  svgIcon?: string;
+};
+
+type ProductWithClassifications = {
+  products: ProductRow[];
+  productClassifications: ProductClassification[];
+}
 
 export default function ProductsPage() {
   const [comboBoxSelectedOption, setComboBoxSelectedOption] =
@@ -76,6 +93,42 @@ export default function ProductsPage() {
     entityName: "Envase",
   });
 
+  const {
+    data: productClassifications,
+    error: errorProductClassifications,
+    isLoading: isLoadingProductClassifications,
+    selectedEntity: selectedProductClassification,
+    setSelectedEntity: setSelectedProductClassification,
+    isEditing: isProductClassificationEditing,
+    setIsEditing: setIsProductClassificationEditing,
+    isModalOpen: isProductClassificationModalOpen,
+    setIsModalOpen: setIsProductClassificationModalOpen,
+    initialState: productClassificationInitialState,
+    setInitialState: setProductClassificationInitialState,
+    formAction: formActionProductClassification,
+    state: stateProductClassification,
+    isPending: isPendingProductClassification,
+    handleOnDelete: handleOnDeleteProductClassification,
+  } = useEntityManager<ProductClassification>({
+    route: "/api/productClassification",
+    addAction: addProductClassification,
+    updateAction: updateProductClassification,
+    deleteAction: deleteProductClassification,
+    setComboBoxSelectedOption,
+    comboBoxSelectedOption,
+    entityName: "Clasificación",
+  });
+
+  // Map productClassifications with their icons
+  const productClassificationsWithIcons = useMemo(
+    () => productClassifications?.map((pc) => ({
+      id: pc.id,
+      name: pc.name,
+      icon: getIcon(pc.svgIcon ?? undefined),
+    })) ?? [],
+    [productClassifications]
+  );
+
   const addNewProductComponent = (state: ProductActionState) => {
     return AddOrEditEntityComponent(
       isEditing ? "Editar Producto" : "Agregar Producto",
@@ -91,6 +144,7 @@ export default function ProductsPage() {
         data={
           containers ? containers.map((c) => ({ id: c.id, name: c.name })) : []
         }
+        classificationOptions={productClassificationsWithIcons}
         modalChildren={addNewContainerComponent(stateContainer)}
         onAddCallBackAction={() => {
           // Aquí puedes manejar la acción de agregar un nuevo proveedor
@@ -118,8 +172,23 @@ export default function ProductsPage() {
     );
   };
 
+  const addNewProductClassificationComponent = (state: ProductClassificationActionState) => {
+    return AddOrEditEntityComponent(
+      isProductClassificationEditing ? "Editar Clasificación" : "Agregar Clasificación",
+      <ProductClassificationForm
+        formAction={formActionProductClassification}
+        state={state}
+        isPending={isPendingProductClassification}
+        isEditing={isProductClassificationEditing}
+        setIsEditing={setIsProductClassificationEditing}
+        setIsModalOpen={setIsProductClassificationModalOpen}
+      />
+    );
+  };
+
   return (
     <>
+     
       <EntityListSection<Container>
         title="Envases"
         addButtonText="Agregar nuevo Envase"
@@ -159,6 +228,42 @@ export default function ProductsPage() {
           });
         }}
       />
+       <EntityListSection<ProductClassification>
+        title="Clasificaciones de Productos"
+        addButtonText="Agregar nueva Clasificación"
+        isLoading={isLoadingProductClassifications}
+        data={productClassifications ?? []}
+        columns={[
+          { header: "Nombre", field: "name" },
+          { header: "Icono", field: "svgIcon", render: (value) => getIcon(value as string) },
+        ]}
+        currentPage={1}
+        totalItems={productClassifications?.length || 0}
+        pageSize={10}
+        onPageChange={() => {}}
+        onEdit={(classification) => {
+          setSelectedProductClassification(classification);
+          setIsProductClassificationEditing(true);
+          setIsProductClassificationModalOpen(true);
+        }}
+        onDelete={({ id }) => handleOnDeleteProductClassification(Number(id))}
+        isModalOpen={isProductClassificationModalOpen}
+        setIsModalOpen={setIsProductClassificationModalOpen}
+        modalContent={addNewProductClassificationComponent(
+          isProductClassificationEditing
+            ? (selectedProductClassification as any as ProductClassificationActionState)
+            : {}
+        )}
+        callBackActionWhenModalOpen={() => {
+          setSelectedProductClassification(null);
+          setIsProductClassificationEditing(false);
+          setProductClassificationInitialState({
+            id: null,
+            name: "",
+            svgIcon: "",
+          });
+        }}
+      />
       <EntityListSection<ProductRow>
         title="Productos"
         addButtonText="Agregar nuevo Producto"
@@ -166,7 +271,8 @@ export default function ProductsPage() {
         data={products ?? []}
         columns={[
           { header: "Nombre", field: "name" },
-          { header: "Envase", field: "container" }
+          { header: "Envase", field: "container" },
+          { header: "Clasificación", field: "svgIcon", render: (value) => getIcon(value as string) }
         ]}
         currentPage={1}
         totalItems={products?.length || 0}

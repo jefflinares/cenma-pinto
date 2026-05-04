@@ -9,6 +9,7 @@ import {
   decimal,
   pgEnum,
   boolean,
+  primaryKey,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -135,8 +136,8 @@ export type Provider = typeof providers.$inferSelect;
 export type NewProvider = typeof providers.$inferInsert;
 export type Product = typeof products.$inferSelect;
 export type NewProduct = typeof products.$inferInsert;
-// export type ProductClassification = typeof productClassifications.$inferSelect;
-// export type NewProductClassification = typeof productClassifications.$inferInsert;
+export type ProductClassification = typeof productClassification.$inferSelect;
+export type NewProductClassification = typeof productClassification.$inferInsert;
 export type Container = typeof containers.$inferSelect;
 export type NewContainer = typeof containers.$inferInsert;
 export type Income = typeof income.$inferSelect;
@@ -231,15 +232,8 @@ export const providers = pgTable("providers", {
   deletedAt: timestamp("deleted_at"),
 });
 
-/* export const productClassifications = pgTable('product_classifications', {
-  id: serial('id').primaryKey(),
-  productId: integer('product_id').notNull().references(() => products.id),
-  name: varchar('name', { length: 100 }).notNull().unique(),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  deletedAt: timestamp('deleted_at'),
-});
-*/
+
+
 export const containers = pgTable("containers", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 50 }).notNull(),
@@ -255,9 +249,19 @@ export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 100 }).notNull(),
   container: integer("container_id").references(() => containers.id),
+  productClassification: integer("classification_id").references(() => productClassification.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   deletedAt: timestamp("deleted_at"),
+});
+
+ export const productClassification = pgTable('product_classification', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 100 }).notNull().unique(),
+  svgIcon: text('svg_icon'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  deletedAt: timestamp('deleted_at'),
 });
 
 export const incomeStatusEnum = pgEnum("income_status", [
