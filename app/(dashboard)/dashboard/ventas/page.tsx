@@ -13,12 +13,13 @@ export type CustomerRow = Customer
 export type OrderRow = CustomerOrder
 
 export default function SalesPage() {
-  
   const router = useRouter();
 
   const {
     data: customers,
     isLoading,
+  currentPage: customerPage,
+  setCurrentPage: setCustomerPage,
     selectedEntity: selectedCustomer,
     setSelectedEntity: setSelectedCustomer,
     isEditing,
@@ -42,6 +43,8 @@ export default function SalesPage() {
 
   const {
     data: orders,
+    currentPage: orderPage,
+    setCurrentPage: setOrderPage,
     isLoading: isLoadingOrder,
     selectedEntity: selectedOrder,
     setSelectedEntity: setSelectedOrder,
@@ -122,10 +125,10 @@ export default function SalesPage() {
           { header: "Email", field: "email" },
           { header: "Dirección", field: "address" },
         ]}
-        currentPage={1}
+        currentPage={customerPage}
         totalItems={customers?.length || 0}
         pageSize={10}
-        onPageChange={() => {}}
+        onPageChange={setCustomerPage}
         onEdit={(customer) => {
           setSelectedCustomer(customer)
           setIsEditing(true)
@@ -161,10 +164,10 @@ export default function SalesPage() {
           { header: "Fecha", field: "date" },
           // { header: "Dirección", field: "address" },
         ]}
-        currentPage={1}
+        currentPage={orderPage}
         totalItems={orders?.length || 0}
         pageSize={10}
-        onPageChange={() => {}}
+        onPageChange={setOrderPage}
         onEdit={(order) => {
           setSelectedOrder(order)
           setIsEditingOrder(true)
