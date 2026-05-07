@@ -252,7 +252,7 @@ const ProviderSettlementPage = ({
                 >
                   <ProviderSettlementTable<SettlementTableRow>
                     mode={mode}
-                    status={selectedIncome.status}
+                    status={mode === "create" ? undefined : selectedIncome.status}
                     rows={(() => {
                       if (!selectedIncome) return [];
                       if ("incomeDetails" in selectedIncome)
@@ -266,7 +266,7 @@ const ProviderSettlementPage = ({
                   />
 
                   <ProviderSettlementExpenses
-                    status={selectedIncome.status}
+                    status={mode === "create" ? undefined : selectedIncome.status}
                     expenses={settlementExpenses}
                     onChange={(expenses) => setSettlementExpenses(expenses)}
                   />

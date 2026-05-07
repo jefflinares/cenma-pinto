@@ -11,15 +11,21 @@ export const extractProductsIds = (rest: Record<string, any>) => {
       productIds[id] = Number(value);
     } else if (key.startsWith("quantity_")) {
       const id = key.replace("quantity_", "");
-      quantities[id] = Number(value);
+      const quantity = value === "" || value === null || value === undefined ? NaN : Number(value);
+      quantities[id] = quantity;
     }
   });
 
   // Combine productIds and quantities
   Object.keys(productIds).forEach((id) => {
+    const quantity = quantities[id];
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      return;
+    }
+
     products.push({
       productId: productIds[id],
-      quantity: quantities[id],
+      quantity,
     });
   });
 

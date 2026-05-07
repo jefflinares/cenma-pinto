@@ -292,9 +292,9 @@ export const incomeDetails = pgTable("income_details", {
     .notNull()
     .references(() => products.id),
   // classificationId: integer('classification_id').notNull().references(() => productClassifications.id),
-  quantity: decimal("quantity", { precision: 10, scale: 2 }).notNull(),
+  quantity: integer("quantity").notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-  remainingQuantity: decimal("remaining_quantity", { precision: 10, scale: 2 }),
+  remainingQuantity: integer("remaining_quantity"),
   createdBy: integer("created_by").references(() => users.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -434,6 +434,9 @@ export const customerOrders = pgTable("customer_orders", {
   customerId: integer("customer_id")
     .notNull()
     .references(() => customers.id),
+  incomeId: integer("income_id")
+    .notNull()
+    .references(() => income.id),
   date: timestamp("date").defaultNow().notNull(),
   createdBy: integer("created_by").references(() => users.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -453,10 +456,11 @@ export const customerOrderDetails = pgTable("customer_order_details", {
   containerId: integer("container_id")
     .notNull()
     .references(() => containers.id),
+
   incomeDetailId: integer("income_detail_id")
     .notNull()
     .references(() => incomeDetails.id),
-  quantity: decimal("quantity", { precision: 10, scale: 2 }).notNull(),
+  quantity: integer("quantity").notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

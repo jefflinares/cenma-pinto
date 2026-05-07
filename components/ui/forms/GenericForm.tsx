@@ -29,6 +29,10 @@ export type GenericFormRowField = {
   type: "row";
   fields: GenericFormField[]; // Array of fields to display in a row
   className?: string; // Optional custom styling for the row
+} | {
+  type: "table";
+  fields: GenericFormField[]; // Array of fields where each field represents a table row
+  className?: string; // Optional custom styling for the table
 };
 
 export type GenericFormFieldOrRow = GenericFormField | GenericFormRowField;
@@ -85,13 +89,13 @@ const GenericForm = ({
   >(() => {
     const initialState: Record<string, (string | number)[]> = {};
     fields.forEach((fieldOrRow) => {
-      if ("type" in fieldOrRow && fieldOrRow.type !== "row") {
+      if ("type" in fieldOrRow && fieldOrRow.type !== "row" && fieldOrRow.type !== "table") {
         const field = fieldOrRow as GenericFormField;
         const carouselState = getCarouselInitialState(field);
         if (carouselState !== null) {
           initialState[field.name] = carouselState;
         }
-      } else if ("type" in fieldOrRow && fieldOrRow.type === "row") {
+      } else if ("type" in fieldOrRow && (fieldOrRow.type === "row" || fieldOrRow.type === "table")) {
         const rowField = fieldOrRow as GenericFormRowField;
         rowField.fields.forEach((field) => {
           const carouselState = getCarouselInitialState(field);
@@ -204,36 +208,16 @@ const GenericForm = ({
     return renderInputField(field);
   };
 
-  const renderRowField = (rowField: GenericFormRowField) => {
+  const renderTableField = (tableField: GenericFormRowField) => {
     // Filter out hidden fields to get the actual visible field count
-    const visibleFields = rowField.fields.filter((field) => !field.hidden);
+    const visibleFields = tableField.fields.filter((field) => !field.hidden);
     const visibleFieldCount = visibleFields.length;
 
-    // Map visible field count to specific Tailwind classes
-    const getGridCols = (count: number) => {
-      switch (count) {
-        case 1:
-          return "grid-cols-1";
-        case 2:
-          return "grid-cols-2";
-        case 3:
-          return "grid-cols-3";
-        case 4:
-          return "grid-cols-4";
-        case 5:
-          return "grid-cols-5";
-        case 6:
-          return "grid-cols-6";
-        default:
-          return "grid-cols-2"; // fallback
-      }
-    };
-
-    // If no visible fields, don't render the grid at all
+    // If no visible fields, don't render the table at all
     if (visibleFieldCount === 0) {
       return (
         <div style={{ display: "none" }}>
-          {rowField.fields.map((field) => (
+          {tableField.fields.map((field) => (
             <div key={field.name} style={{ display: "none" }}>
               {renderSingleField(field)}
             </div>
@@ -243,24 +227,56 @@ const GenericForm = ({
     }
 
     return (
-      <div
-        className={`grid ${getGridCols(visibleFieldCount)} gap-4 ${
-          rowField.className || ""
-        }`}
-      >
-        {rowField.fields.map((field) => {
-          if (field.hidden) {
-            // Render hidden fields outside the grid
-            return (
-              <div key={field.name} style={{ display: "none" }}>
-                {renderSingleField(field)}
-              </div>
-            );
-          }
-
-          // Render visible fields in the grid
-          return <div key={field.name}>{renderSingleField(field)}</div>;
-        })}
+      <div className={`overflow-x-auto ${tableField.className || ""}`}>
+        <table className="min-w-full border border-gray-300">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                ID
+              </th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Nombre
+              </th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Valor
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {tableField.fields
+              .filter((field) => !field.hidden) // Skip hidden fields
+              .map((field, index) => (
+              <tr key={field.name}>
+                {/* Hidden ID field */}
+                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                  <input
+                    type="hidden"
+                    name={`${field.name}_id`}
+                    value={Array.isArray(field.defaultValue) ? field.defaultValue[0] || "" : field.defaultValue || ""}
+                  />
+                  {Array.isArray(field.defaultValue) ? field.defaultValue[0] || index + 1 : field.defaultValue || index + 1}
+                </td>
+                {/* Name field */}
+                <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                  {field.label}
+                </td>
+                {/* Input field */}
+                <td className="px-4 py-2 whitespace-nowrap">
+                  <Input
+                    id={field.name}
+                    name={field.name}
+                    type={field.type && field.type !== "combobox" && field.type !== "carousel" ? field.type : "text"}
+                    placeholder={field.placeholder}
+                    defaultValue={Array.isArray(field.defaultValue) ? field.defaultValue[0] || "" : field.defaultValue || ""}
+                    required={field.required}
+                    className="w-full"
+                    {...field.props}
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     );
   };
@@ -268,10 +284,19 @@ const GenericForm = ({
   const renderFields = () => {
     return fields.map((fieldOrRow, index) => {
       // Check if it's a row field
-      if ("type" in fieldOrRow && fieldOrRow.type === "row") {
+    /*   if ("type" in fieldOrRow && fieldOrRow.type === "row") {
         return (
           <div key={`row-${index}`}>
-            {renderRowField(fieldOrRow as GenericFormRowField)}
+            {render(fieldOrRow as GenericFormRowField)}
+          </div>
+        );
+      }
+ */
+      // Check if it's a table field
+      if ("type" in fieldOrRow && fieldOrRow.type === "table") {
+        return (
+          <div key={`table-${index}`}>
+            {renderTableField(fieldOrRow as GenericFormRowField)}
           </div>
         );
       }

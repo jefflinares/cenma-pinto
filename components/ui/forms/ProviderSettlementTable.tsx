@@ -376,7 +376,7 @@ export default function ProviderSettlementTable<
                           : Number(e.target.value),
                       )
                     }
-                    className={`w-20 sm:w-24 rounded-md border px-2 py-1 text-center focus:ring ${
+                    className={`w-20 sm:w-24 rounded-md border px-2 py-1 text-center focus:ring [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                       errors[item.localId] &&
                       errors[item.localId]?.field === "unitPrice"
                         ? "border-red-500 focus:ring-red-200"
@@ -406,7 +406,7 @@ export default function ProviderSettlementTable<
                           : Number(e.target.value),
                       )
                     }
-                    className={`w-20 sm:w-24 rounded-md border px-2 py-1 text-center focus:ring ${
+                    className={`w-20 sm:w-24 rounded-md border px-2 py-1 text-center focus:ring [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                       errors[item.localId] &&
                       errors[item.localId]?.field === "comission"
                         ? "border-red-500 focus:ring-red-200"

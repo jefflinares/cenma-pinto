@@ -42,6 +42,7 @@ const OrderForm = ({
   ...props
 }: OrderProps) => {
   console.log("🚀 ~ OrderForm ~ selectedOption:", selectedOption);
+  const [selectedIncomeId, setSelectedIncomeId] = React.useState<number | null>(null);
   const [updatedOrderRows, setUpdatedOrderRows] = React.useState<
     IncomeDetailRow[]
   >([]);
@@ -51,22 +52,19 @@ const OrderForm = ({
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    // build FormData from the form (includes normal fields)
     const fd = new FormData(formRef.current ?? undefined);
 
-    // ensure customerId is included (from combobox selectedOption or form input)
-    //debugger;
-    fd.set('date', String(new Date().toISOString().split("T")[0]))
+    fd.set("date", String(new Date().toISOString().split("T")[0]));
     const customerId =
       selectedOption?.id ??
       (fd.get("customerId") as string | null) ??
       props.state?.customerId;
     if (customerId != null) fd.set("customerId", String(customerId));
 
-    // include updated order rows as JSON
+    if (selectedIncomeId != null) fd.set("incomeId", String(selectedIncomeId));
+
     fd.set("orderDetails", JSON.stringify(updatedOrderRows));
 
-    // call the server action (expects FormData)
     await props.formAction(fd);
   };
 
@@ -109,6 +107,7 @@ const OrderForm = ({
             <OrderItemsTable
               rows={income.incomeDetails as IncomeDetailRow[]}
               onChange={(updatedRow) => {
+                setSelectedIncomeId(income.id ?? null);
                 setUpdatedOrderRows((prevRows) => {
                   const existingIndex = prevRows.findIndex(
                     (row) => row.id === updatedRow.id

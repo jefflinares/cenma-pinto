@@ -158,7 +158,7 @@ export default function ProviderSettlementExpenses({
                         e.target.value === "" ? 0 : Number(e.target.value),
                       )
                     }
-                    className={`w-24 rounded-md border px-2 py-1 text-center focus:ring ${
+                    className={`w-24 rounded-md border px-2 py-1 text-center focus:ring [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                       errors[item.id] && errors[item.id]?.field === "amount"
                         ? "border-red-500 focus:ring-red-200"
                         : "focus:ring-blue-200"

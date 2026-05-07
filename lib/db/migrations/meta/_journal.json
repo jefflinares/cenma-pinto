@@ -183,6 +183,27 @@
       "when": 1777343452164,
       "tag": "0025_damp_susan_delgado",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1778168616514,
+      "tag": "0026_bored_morph",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1778168658621,
+      "tag": "0027_melted_warstar",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1778200000000,
+      "tag": "0028_integer_quantities",
+      "breakpoints": true
     }
   ]
 }

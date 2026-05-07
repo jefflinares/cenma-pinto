@@ -1,16 +1,18 @@
-'use client';
-import { useEntityManager } from '@/components/hooks/useEntityManager';
-import { addCustomer, deleteCustomer, updateCustomer } from './actions';
-import { EntityListSection } from '@/components/ui/EntityListSection';
-import { Customer, CustomerOrder } from '@/lib/db/schema';
-import CustomerForm, { CustomerActionState } from '@/components/ui/forms/customerForm';
-import AddOrEditEntityComponent from '@/components/ui/forms/addOrEditForm';
-import OrderForm, { OrderActionState } from '@/components/ui/forms/orderForm';
-import { useRouter } from 'next/navigation';
+"use client";
+import { useEntityManager } from "@/components/hooks/useEntityManager";
+import { addCustomer, deleteCustomer, updateCustomer } from "./actions";
+import { EntityListSection } from "@/components/ui/EntityListSection";
+import { Customer, CustomerOrder } from "@/lib/db/schema";
+import CustomerForm, {
+  CustomerActionState,
+} from "@/components/ui/forms/customerForm";
+import AddOrEditEntityComponent from "@/components/ui/forms/addOrEditForm";
+import OrderForm, { OrderActionState } from "@/components/ui/forms/orderForm";
+import { useRouter } from "next/navigation";
 
-export type CustomerRow = Customer
+export type CustomerRow = Customer;
 
-export type OrderRow = CustomerOrder
+export type OrderRow = CustomerOrder;
 
 export default function SalesPage() {
   const router = useRouter();
@@ -18,8 +20,8 @@ export default function SalesPage() {
   const {
     data: customers,
     isLoading,
-  currentPage: customerPage,
-  setCurrentPage: setCustomerPage,
+    currentPage: customerPage,
+    setCurrentPage: setCustomerPage,
     selectedEntity: selectedCustomer,
     setSelectedEntity: setSelectedCustomer,
     isEditing,
@@ -38,8 +40,7 @@ export default function SalesPage() {
     setComboBoxSelectedOption: () => {},
     comboBoxSelectedOption: null,
     entityName: "Cliente",
-  })
-
+  });
 
   const {
     data: orders,
@@ -64,11 +65,11 @@ export default function SalesPage() {
     setComboBoxSelectedOption: () => {},
     comboBoxSelectedOption: null,
     entityName: "Order",
-  })
+  });
 
   const addNewCustomer = (
     state: CustomerActionState,
-    formAction: (formData: FormData) => void | Promise<void>
+    formAction: (formData: FormData) => void | Promise<void>,
   ) => {
     return AddOrEditEntityComponent(
       isEditing ? "Editar Cliente" : "Agregar Cliente",
@@ -79,13 +80,13 @@ export default function SalesPage() {
         isEditing={isEditing}
         setIsModalOpen={setIsModalOpen}
         setIsEditing={setIsEditing}
-      />
-    )
-  }
+      />,
+    );
+  };
 
   const addNewOrder = (
     state: OrderActionState,
-    formAction: (formData: FormData) => void | Promise<void>
+    formAction: (formData: FormData) => void | Promise<void>,
   ) => {
     return AddOrEditEntityComponent(
       isEditingOrder ? "Editar Orden" : "Agregar Orden",
@@ -94,7 +95,7 @@ export default function SalesPage() {
         state={state}
         customersData={customers?.map((c) => ({
           id: c.id,
-          name: c.name
+          name: c.name,
         }))}
         incomes={[]}
         productsData={[]}
@@ -107,15 +108,15 @@ export default function SalesPage() {
         selectedOption={null}
         setComboBoxSelectedOption={() => {}}
         modalChildren={<></>}
-      />
-    )
-  }
+      />,
+    );
+  };
 
-  return (    
+  return (
     <>
       <EntityListSection<CustomerRow>
         title="Clientes"
-        addButtonText='Agregar nuevo Cliente'
+        addButtonText="Agregar nuevo Cliente"
         isLoading={isLoading}
         data={customers ?? []}
         columns={[
@@ -130,23 +131,22 @@ export default function SalesPage() {
         pageSize={10}
         onPageChange={setCustomerPage}
         onEdit={(customer) => {
-          setSelectedCustomer(customer)
-          setIsEditing(true)
-          setIsModalOpen(true)
+          setSelectedCustomer(customer);
+          setIsEditing(true);
+          setIsModalOpen(true);
         }}
         onDelete={({ id }) => handleOnDeleteCustomer(Number(id))}
-
         isModalOpen={isModalOpen}
         setIsModalOpen={setIsModalOpen}
         modalContent={addNewCustomer(
           isEditing
             ? (selectedCustomer as any as CustomerActionState)
             : ({} as any),
-          formActionCustomer
+          formActionCustomer,
         )}
         callBackActionWhenModalOpen={() => {
           console.log(
-            "reset selected customer and initial state when modal opens"
+            "reset selected customer and initial state when modal opens",
           );
           setIsEditing(false);
           setSelectedCustomer(null);
@@ -155,7 +155,7 @@ export default function SalesPage() {
       />
       <EntityListSection<OrderRow>
         title="Ventas"
-        addButtonText='Agregar nueva venta'
+        addButtonText="Agregar nueva venta"
         isLoading={isLoadingOrder}
         data={orders ?? []}
         columns={[
@@ -169,29 +169,28 @@ export default function SalesPage() {
         pageSize={10}
         onPageChange={setOrderPage}
         onEdit={(order) => {
-          setSelectedOrder(order)
-          setIsEditingOrder(true)
-          setIsModalOpenOrder(true)
+          setSelectedOrder(order);
+          setIsEditingOrder(true);
+          setIsModalOpenOrder(true);
         }}
         onDelete={({ id }) => handleOnDeleteOrder(Number(id))}
-
         isModalOpen={isModalOpenOrder}
         setIsModalOpen={setIsModalOpenOrder}
         modalContent={addNewOrder(
           isEditingOrder
             ? (selectedOrder as any as OrderActionState)
             : ({} as any),
-          formActionOrder
+          formActionOrder,
         )}
         redirectsOnAdd={true}
         callBackActionWhenModalOpen={() => {
           console.log(
-            "reset selected order and initial state when modal opens"
+            "reset selected order and initial state when modal opens",
           );
           setIsEditingOrder(false);
           setSelectedOrder(null);
           setInitialStateOrder({});
-          router.push('./ventas/nueva')
+          router.push("./ventas/nueva");
         }}
       />
     </>
