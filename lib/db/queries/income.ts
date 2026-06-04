@@ -60,9 +60,9 @@ export async function getIncomes(params: IncomeParams) {
               isNull(incomeDetails.deletedAt),
               eq(incomeDetails.incomeId, incomeRow.id),
               withAvailableStock
-                ? gt(incomeDetails.remainingQuantity, "0")
+                ? gt(incomeDetails.remainingQuantity, 0)
                 : undefined,
-              gt(incomeDetails.quantity, "0"),
+              gt(incomeDetails.quantity, 0),
             ),
           ),
       };

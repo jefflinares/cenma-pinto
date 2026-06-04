@@ -38,7 +38,7 @@ export default function OrderItemsTable({ rows, onChange }: Props) {
               message: `Cantidad máxima: ${item.stock}`,
             },
           }));
-          newItem = { ...item, [field]: String(item.stock) };
+          newItem = { ...item, [field]: +String(item.stock) };
         } else if (qty < 0) {
           setErrors((s) => ({
             ...s,
@@ -47,10 +47,10 @@ export default function OrderItemsTable({ rows, onChange }: Props) {
               message: "Cantidad no puede ser negativa",
             },
           }));
-          newItem = { ...item, [field]: "0" };
+          newItem = { ...item, [field]: +String(0) };
         } else {
           setErrors((s) => ({ ...s, [id]: null }));
-          newItem = { ...item, [field]: value?.toString() ?? "0" };
+          newItem = { ...item, [field]: +String(value ?? 0) };
         }
       } else if (field === "unitPrice") {
         if ((value ?? 0) < 0) {
