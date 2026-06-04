@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Income, IncomeDetail, Provider } from "@/lib/db/schema";
+import { Income, Provider } from "@/lib/db/schema";
 import SupplierForm, {
   SupplierActionState,
 } from "@/components/ui/forms/supplier";
@@ -23,21 +23,14 @@ import NestedTable from "@/components/ui/NestedTable";
 import { ProductRow } from "../productos/page";
 import { useEntityManager } from "@/components/hooks/useEntityManager";
 import { Entity } from "@/components/ui/comboBox";
-import { Check, ReceiptText } from "lucide-react";
+import { BadgeDollarSign, Check, ReceiptText } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { useRouter } from "next/navigation";
+import type { IncomeDetailRow, IncomeRow } from "./types";
+
+export type { IncomeDetailRow, IncomeRow };
 
 type ProviderRow = Provider;
-export type IncomeDetailRow = IncomeDetail & {
-  productName?: string;
-  stock: number;
-  unitPrice?: number;
-};
-export type IncomeRow = Income & {
-  formattedDate?: string;
-  providerName?: string;
-  incomeDetails?: IncomeDetailRow[];
-};
 
 export default function SuppliersPage() {
   const [comboBoxSelectedOption, setComboBoxSelectedOption] =
@@ -243,6 +236,10 @@ export default function SuppliersPage() {
         title="Ingresos de Camiones"
         addButtonText="Agregar nuevo Ingreso"
         isLoading={isLoadingIncomes}
+        redirectsOnAdd={true}
+        callBackActionWhenModalOpen={() => {
+          router.push("/dashboard/ingresos/0");
+        }}
         data={incomes ?? []}
         columns={[
           { header: "Fecha", field: "formattedDate" },
@@ -291,6 +288,21 @@ export default function SuppliersPage() {
             ),
             renderCondition: (income: Income) => income.status === "confirmed"
           },
+             {
+            action: "sale register",
+            component: (income: IncomeRow) => (
+              <button
+                className="text-green-500 hover:text-green-700 flex items-center gap-1"
+                onClick={() => {
+                  router.push(`/dashboard/ingresos/${income.id}`);
+                }}
+              >
+                <BadgeDollarSign size={18} />
+                <span className="text-sm">Registrar Venta</span>
+              </button>
+            ),
+            renderCondition: (income: Income) => income.status === "confirmed"
+          },
           {
             action: "view receipt",
             component: (income: IncomeRow) => (
@@ -312,7 +324,7 @@ export default function SuppliersPage() {
         totalItems={incomes?.length || 0}
         pageSize={10}
         onPageChange={(page) => setCurrentPageIncome(page)}
-        onEdit={(income) => {
+       /*  onEdit={(income) => {
           setSelectedIncome(income);
           setIsIncomeEditing(true);
           setComboBoxSelectedOption({
@@ -322,13 +334,14 @@ export default function SuppliersPage() {
                 ?.providerName || "",
           });
           setIsIncomeModalOpen(true);
-        }}
+        }} */
+       onEdit={(income) => { router.push(`/dashboard/ingresos/${income.id}`) }} // Handle edit if needed
         onDelete={({ id }) => {
           handleOnDeleteIncome(id);
         }}
         isModalOpen={isIncomeModalOpen}
         setIsModalOpen={setIsIncomeModalOpen}
-        callBackActionWhenModalOpen={() => {
+       /*callBackActionWhenModalOpen={() => {
           console.log(
             "callback para resetear el comboBoxSelectedOption y evitar que quede el último seleccionado aparezca en el formulario del truck",
           );
@@ -336,7 +349,7 @@ export default function SuppliersPage() {
           setComboBoxSelectedOption(null);
           setSelectedIncome(null);
           setIncomeInitialState({});
-        }}
+        }}*/
         modalContent={addNewIncome(
           isIncomeEditing
             ? (selectedIncome as any as IncomeActionState)

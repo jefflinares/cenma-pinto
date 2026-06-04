@@ -329,14 +329,11 @@ export default function ProviderSettlementTable<
                 )}
                 <td className="px-3 py-2 text-center w-20">
                   <input
-                    type="number"
+                    type="text"
                     readOnly={status === "confirmed"}
-                    min={0}
-                    max={isIncomeDetailRow(item) ? item.stock : undefined}
                     value={Math.floor(Number(item.quantity)) ?? ""}
-                    step={1}
-                    pattern="\d*"
                     inputMode="numeric"
+                    pattern="\d*"
                     className={`w-14 sm:w-20 rounded-md border px-2 py-1 text-center focus:ring ${
                       errors[item.localId] &&
                       errors[item.localId]?.field === "quantity"
@@ -376,7 +373,7 @@ export default function ProviderSettlementTable<
                           : Number(e.target.value),
                       )
                     }
-                    className={`w-20 sm:w-24 rounded-md border px-2 py-1 text-center focus:ring ${
+                    className={`w-20 sm:w-24 rounded-md border px-2 py-1 text-center focus:ring [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                       errors[item.localId] &&
                       errors[item.localId]?.field === "unitPrice"
                         ? "border-red-500 focus:ring-red-200"
@@ -406,7 +403,7 @@ export default function ProviderSettlementTable<
                           : Number(e.target.value),
                       )
                     }
-                    className={`w-20 sm:w-24 rounded-md border px-2 py-1 text-center focus:ring ${
+                    className={`w-20 sm:w-24 rounded-md border px-2 py-1 text-center focus:ring [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
                       errors[item.localId] &&
                       errors[item.localId]?.field === "comission"
                         ? "border-red-500 focus:ring-red-200"

@@ -9,6 +9,7 @@ import {
   decimal,
   pgEnum,
   boolean,
+  primaryKey,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -135,8 +136,8 @@ export type Provider = typeof providers.$inferSelect;
 export type NewProvider = typeof providers.$inferInsert;
 export type Product = typeof products.$inferSelect;
 export type NewProduct = typeof products.$inferInsert;
-// export type ProductClassification = typeof productClassifications.$inferSelect;
-// export type NewProductClassification = typeof productClassifications.$inferInsert;
+export type ProductClassification = typeof productClassification.$inferSelect;
+export type NewProductClassification = typeof productClassification.$inferInsert;
 export type Container = typeof containers.$inferSelect;
 export type NewContainer = typeof containers.$inferInsert;
 export type Income = typeof income.$inferSelect;
@@ -231,20 +232,14 @@ export const providers = pgTable("providers", {
   deletedAt: timestamp("deleted_at"),
 });
 
-/* export const productClassifications = pgTable('product_classifications', {
-  id: serial('id').primaryKey(),
-  productId: integer('product_id').notNull().references(() => products.id),
-  name: varchar('name', { length: 100 }).notNull().unique(),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-  deletedAt: timestamp('deleted_at'),
-});
-*/
+
+
 export const containers = pgTable("containers", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 50 }).notNull(),
-  capacity: decimal("capacity", { precision: 10, scale: 2 }).notNull(),
-  unit: varchar("unit", { length: 20 }).notNull(), // e.g., 'kg', 'liters'
+  // capacity: decimal("capacity", { precision: 10, scale: 2 }).default("0"),
+  // unit: varchar("unit", { length: 20 }).default(""), // e.g., 'kg', 'liters'
+  unitPrice: decimal("unit_price", { precision: 12, scale: 2 }).default("0"), // optional price per unit for costing
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   deletedAt: timestamp("deleted_at"),
@@ -254,9 +249,19 @@ export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 100 }).notNull(),
   container: integer("container_id").references(() => containers.id),
+  productClassification: integer("classification_id").references(() => productClassification.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   deletedAt: timestamp("deleted_at"),
+});
+
+ export const productClassification = pgTable('product_classification', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 100 }).notNull().unique(),
+  svgIcon: text('svg_icon'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  deletedAt: timestamp('deleted_at'),
 });
 
 export const incomeStatusEnum = pgEnum("income_status", [
@@ -287,9 +292,9 @@ export const incomeDetails = pgTable("income_details", {
     .notNull()
     .references(() => products.id),
   // classificationId: integer('classification_id').notNull().references(() => productClassifications.id),
-  quantity: decimal("quantity", { precision: 10, scale: 2 }).notNull(),
+  quantity: integer("quantity").notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
-  remainingQuantity: decimal("remaining_quantity", { precision: 10, scale: 2 }),
+  remainingQuantity: integer("remaining_quantity"),
   createdBy: integer("created_by").references(() => users.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -429,6 +434,9 @@ export const customerOrders = pgTable("customer_orders", {
   customerId: integer("customer_id")
     .notNull()
     .references(() => customers.id),
+  incomeId: integer("income_id")
+    .notNull()
+    .references(() => income.id),
   date: timestamp("date").defaultNow().notNull(),
   createdBy: integer("created_by").references(() => users.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -448,10 +456,11 @@ export const customerOrderDetails = pgTable("customer_order_details", {
   containerId: integer("container_id")
     .notNull()
     .references(() => containers.id),
+
   incomeDetailId: integer("income_detail_id")
     .notNull()
     .references(() => incomeDetails.id),
-  quantity: decimal("quantity", { precision: 10, scale: 2 }).notNull(),
+  quantity: integer("quantity").notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

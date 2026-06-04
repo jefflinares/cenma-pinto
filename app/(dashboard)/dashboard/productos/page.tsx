@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import ProductOrContainerForm, {
   ProductActionState,
 } from "@/components/ui/forms/product";
@@ -10,21 +10,39 @@ import {
   deleteProduct,
   updateContainer,
   updateProduct,
+  addProductClassification,
+  updateProductClassification,
+  deleteProductClassification,
 } from "./actions";
-import { Container, Product } from "@/lib/db/schema";
+import { Container, Product, ProductClassification } from "@/lib/db/schema";
 import { EntityListSection } from "@/components/ui/EntityListSection";
 import AddOrEditEntityComponent from "@/components/ui/forms/addOrEditForm";
 import ContainerForm, {
   ContainerActionState,
 } from "@/components/ui/forms/containerForm";
+import ProductClassificationForm, {
+  ProductClassificationActionState,
+} from "@/components/ui/forms/productClassificationForm";
 import { useEntityManager } from "@/components/hooks/useEntityManager";
 import { Entity } from "@/components/ui/comboBox";
+import { getIcon } from "@/lib/icons/classificationIcons";
 
-export type ProductRow = Product & { containerId?: string | number };
+export type ProductRow = Product & {
+  containerId?: string | number;
+  productClassification?: string;
+  productClassificationId?: string | number;
+  svgIcon?: string;
+};
+
+type ProductWithClassifications = {
+  products: ProductRow[];
+  productClassifications: ProductClassification[];
+};
 
 export default function ProductsPage() {
   const [comboBoxSelectedOption, setComboBoxSelectedOption] =
     useState<Entity | null>(null);
+
   const {
     data: products,
     error,
@@ -37,6 +55,8 @@ export default function ProductsPage() {
     setIsModalOpen,
     initialState,
     setInitialState,
+    currentPage: currentProductPage,
+    setCurrentPage: setCurrentProductPage,
     formAction,
     isPending,
     handleOnDelete: handleOnDeleteProduct,
@@ -53,6 +73,8 @@ export default function ProductsPage() {
   const {
     data: containers,
     error: errorContainers,
+    currentPage: containerPage,
+    setCurrentPage: setContainerPage,
     isLoading: isLoadingContainers,
     selectedEntity: selectedContainer,
     setSelectedEntity: setSelectedContainer,
@@ -73,8 +95,47 @@ export default function ProductsPage() {
     deleteAction: deleteContainer,
     setComboBoxSelectedOption,
     comboBoxSelectedOption,
-    entityName: "Contenedor",
+    entityName: "Envase",
   });
+
+  const {
+    data: productClassifications,
+    error: errorProductClassifications,
+    currentPage: classificationPage,
+    setCurrentPage: setClassificationPage,
+    isLoading: isLoadingProductClassifications,
+    selectedEntity: selectedProductClassification,
+    setSelectedEntity: setSelectedProductClassification,
+    isEditing: isProductClassificationEditing,
+    setIsEditing: setIsProductClassificationEditing,
+    isModalOpen: isProductClassificationModalOpen,
+    setIsModalOpen: setIsProductClassificationModalOpen,
+    initialState: productClassificationInitialState,
+    setInitialState: setProductClassificationInitialState,
+    formAction: formActionProductClassification,
+    state: stateProductClassification,
+    isPending: isPendingProductClassification,
+    handleOnDelete: handleOnDeleteProductClassification,
+  } = useEntityManager<ProductClassification>({
+    route: "/api/productClassification",
+    addAction: addProductClassification,
+    updateAction: updateProductClassification,
+    deleteAction: deleteProductClassification,
+    setComboBoxSelectedOption,
+    comboBoxSelectedOption,
+    entityName: "Clasificación",
+  });
+
+  // Map productClassifications with their icons
+  const productClassificationsWithIcons = useMemo(
+    () =>
+      productClassifications?.map((pc) => ({
+        id: pc.id,
+        name: pc.name,
+        icon: getIcon(pc.svgIcon ?? undefined),
+      })) ?? [],
+    [productClassifications],
+  );
 
   const addNewProductComponent = (state: ProductActionState) => {
     return AddOrEditEntityComponent(
@@ -91,22 +152,23 @@ export default function ProductsPage() {
         data={
           containers ? containers.map((c) => ({ id: c.id, name: c.name })) : []
         }
+        classificationOptions={productClassificationsWithIcons}
         modalChildren={addNewContainerComponent(stateContainer)}
         onAddCallBackAction={() => {
           // Aquí puedes manejar la acción de agregar un nuevo proveedor
           console.log(
-            "callback para cerrar el formulario del producto y permitir que se abra el de contenedores"
+            "callback para cerrar el formulario del producto y permitir que se abra el de envases",
           );
           setIsModalOpen(false);
           setIsContainerModalOpen(true);
         }}
-      />
+      />,
     );
   };
 
   const addNewContainerComponent = (state: ProductActionState) => {
     return AddOrEditEntityComponent(
-      isContainerEditing ? "Editar Contenedor" : "Agregar Contenedor",
+      isContainerEditing ? "Editar Envase" : "Agregar Envase",
       <ContainerForm
         formAction={formActionContainer}
         state={state}
@@ -114,26 +176,45 @@ export default function ProductsPage() {
         isEditing={isContainerEditing}
         setIsEditing={setIsContainerEditing}
         setIsModalOpen={setIsContainerModalOpen}
-      />
+      />,
+    );
+  };
+
+  const addNewProductClassificationComponent = (
+    state: ProductClassificationActionState,
+  ) => {
+    return AddOrEditEntityComponent(
+      isProductClassificationEditing
+        ? "Editar Clasificación"
+        : "Agregar Clasificación",
+      <ProductClassificationForm
+        formAction={formActionProductClassification}
+        state={state}
+        isPending={isPendingProductClassification}
+        isEditing={isProductClassificationEditing}
+        setIsEditing={setIsProductClassificationEditing}
+        setIsModalOpen={setIsProductClassificationModalOpen}
+      />,
     );
   };
 
   return (
     <>
       <EntityListSection<Container>
-        title="Contenedores"
-        addButtonText="Agregar nuevo Contenedor"
+        title="Envases"
+        addButtonText="Agregar nuevo Envase"
         isLoading={isLoadingContainers}
         data={containers ?? []}
         columns={[
           { header: "Nombre", field: "name" },
-          { header: "Capacidad", field: "capacity" },
-          { header: "Unidad", field: "unit" },
+          // { header: "Capacidad", field: "capacity" },
+          // { header: "Unidad", field: "unit" },
+          { header: "Precio por Envase", field: "unitPrice" },
         ]}
-        currentPage={1}
+        currentPage={containerPage}
         totalItems={containers?.length || 0}
         pageSize={10}
-        onPageChange={() => {}}
+        onPageChange={setContainerPage}
         onEdit={(container) => {
           setSelectedContainer(container);
           setIsContainerEditing(true);
@@ -145,7 +226,7 @@ export default function ProductsPage() {
         modalContent={addNewContainerComponent(
           isContainerEditing
             ? (selectedContainer as any as ContainerActionState)
-            : {}
+            : {},
         )}
         callBackActionWhenModalOpen={() => {
           setSelectedContainer(null);
@@ -158,6 +239,46 @@ export default function ProductsPage() {
           });
         }}
       />
+      <EntityListSection<ProductClassification>
+        title="Clasificaciones de Productos"
+        addButtonText="Agregar nueva Clasificación"
+        isLoading={isLoadingProductClassifications}
+        data={productClassifications ?? []}
+        columns={[
+          { header: "Nombre", field: "name" },
+          {
+            header: "Icono",
+            field: "svgIcon",
+            render: (value) => getIcon(value as string),
+          },
+        ]}
+        currentPage={classificationPage}
+        totalItems={productClassifications?.length || 0}
+        pageSize={10}
+        onPageChange={setClassificationPage}
+        onEdit={(classification) => {
+          setSelectedProductClassification(classification);
+          setIsProductClassificationEditing(true);
+          setIsProductClassificationModalOpen(true);
+        }}
+        onDelete={({ id }) => handleOnDeleteProductClassification(Number(id))}
+        isModalOpen={isProductClassificationModalOpen}
+        setIsModalOpen={setIsProductClassificationModalOpen}
+        modalContent={addNewProductClassificationComponent(
+          isProductClassificationEditing
+            ? (selectedProductClassification as any as ProductClassificationActionState)
+            : {},
+        )}
+        callBackActionWhenModalOpen={() => {
+          setSelectedProductClassification(null);
+          setIsProductClassificationEditing(false);
+          setProductClassificationInitialState({
+            id: null,
+            name: "",
+            svgIcon: "",
+          });
+        }}
+      />
       <EntityListSection<ProductRow>
         title="Productos"
         addButtonText="Agregar nuevo Producto"
@@ -165,12 +286,17 @@ export default function ProductsPage() {
         data={products ?? []}
         columns={[
           { header: "Nombre", field: "name" },
-          { header: "Contenedor", field: "container" },
+          { header: "Envase", field: "container" },
+          {
+            header: "Clasificación",
+            field: "svgIcon",
+            render: (value) => getIcon(value as string),
+          },
         ]}
-        currentPage={1}
+        currentPage={currentProductPage}
         totalItems={products?.length || 0}
         pageSize={10}
-        onPageChange={() => {}}
+        onPageChange={setCurrentProductPage}
         onEdit={(product) => {
           setSelectedProduct(product);
           setIsEditing(true);
@@ -186,7 +312,7 @@ export default function ProductsPage() {
         isModalOpen={isModalOpen}
         setIsModalOpen={setIsModalOpen}
         modalContent={addNewProductComponent(
-          isEditing ? (selectedProduct as any as ProductActionState) : {}
+          isEditing ? (selectedProduct as any as ProductActionState) : {},
         )}
         callBackActionWhenModalOpen={() => {
           setComboBoxSelectedOption(null); // Clear the selected option

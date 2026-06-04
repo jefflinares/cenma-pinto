@@ -203,7 +203,7 @@ const ProviderSettlementPage = ({
                     <strong> Fecha de ingreso:</strong>{" "}
                     {selectedIncome.formattedDate}
                   </p>
-                  {isIncomeConfirmed && (
+                  {mode === "edit" && isIncomeConfirmed && (
                     <button
                       type="button"
                       onClick={() =>
@@ -218,7 +218,7 @@ const ProviderSettlementPage = ({
                       className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg text-sm"
                     >
                       <Receipt size={16} />
-                      Generar Recibo
+                      Descargar Recibo
                     </button>
                   )}
                 </div>
@@ -252,7 +252,7 @@ const ProviderSettlementPage = ({
                 >
                   <ProviderSettlementTable<SettlementTableRow>
                     mode={mode}
-                    status={selectedIncome.status}
+                    status={mode === "create" ? undefined : selectedIncome.status}
                     rows={(() => {
                       if (!selectedIncome) return [];
                       if ("incomeDetails" in selectedIncome)
@@ -266,7 +266,7 @@ const ProviderSettlementPage = ({
                   />
 
                   <ProviderSettlementExpenses
-                    status={selectedIncome.status}
+                    status={mode === "create" ? undefined : selectedIncome.status}
                     expenses={settlementExpenses}
                     onChange={(expenses) => setSettlementExpenses(expenses)}
                   />
@@ -287,7 +287,7 @@ const ProviderSettlementPage = ({
                   </div>
 
                   <div className="flex gap-4">
-                    {!isIncomeConfirmed && (<><button
+                    {(mode === "create" || !isIncomeConfirmed) && (<><button
                       type="submit"
                       disabled={isPending}
                       className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg disabled:opacity-50"
@@ -300,7 +300,7 @@ const ProviderSettlementPage = ({
                           ? "Generar Recibo"
                           : "Actualizar Recibo"}
                     </button>
-                   
+
                     </>)}
                      <button
                       type="button"

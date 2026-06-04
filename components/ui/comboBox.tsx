@@ -6,6 +6,7 @@ import { Modal } from "./modal";
 export type Entity = {
   id: string | number;
   name: string;
+  icon?: React.ReactNode;
 };
 
 export type ComboBoxWithModalProps = React.ComponentProps<"input"> & {
@@ -76,6 +77,14 @@ function ComboBoxWithModal({
         }}
         placeholder="Escribe para buscar..."
       />
+      {selectedOption?.icon && (
+        <div className="mt-2 p-2 border rounded bg-gray-50 flex items-center gap-2">
+          <div className="w-6 h-6 flex-shrink-0">
+            {selectedOption.icon}
+          </div>
+          <span className="text-sm text-gray-700">{selectedOption.name}</span>
+        </div>
+      )}
 
       {  (<div className="border rounded mt-2 bg-white max-h-40 overflow-auto">
         {filteredOptions.length > 0 ? (
@@ -86,9 +95,14 @@ function ComboBoxWithModal({
                 setQuery(opt.name);
                 setComboBoxSelectedOption && setComboBoxSelectedOption(opt);
               }}
-              className="px-3 py-2 hover:bg-blue-100 cursor-pointer"
+              className="px-3 py-2 hover:bg-blue-100 cursor-pointer flex items-center gap-2"
             >
-              {opt.name}
+              {opt.icon && (
+                <div className="w-5 h-5 flex-shrink-0">
+                  {opt.icon}
+                </div>
+              )}
+              <span>{opt.name}</span>
             </div>
           ))
         ) : ( 

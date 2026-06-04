@@ -39,27 +39,20 @@ const ContainerForm = ({
       : []),
     {
       name: "name",
-      label: "Nombre del contenedor",
+      label: "Nombre del envase",
       required: true,
-      placeholder: "Nombre del Contenedor",
+      placeholder: "Nombre del Envase",
       defaultValue: state?.name || "",
     },
     {
-      name: "capacity",
-      label: "Capacidad",
+      name: "unitPrice",
+      label: "Precio por envase",
       required: true,
-      defaultValue: state?.capacity || 0,
-      placeholder: "Capacidad del Contenedor",
+      defaultValue: state?.unitPrice || 0,
+      placeholder: "Precio por Envase",
       type: "number",
       min: 0,
-    },
-    {
-      name: "unit",
-      label: "Unidad",
-      required: true,
-      placeholder: "Unidad de Medida",
-      defaultValue: state?.unit || "",
-    },
+    }
   ];
   return (
     <GenericForm
@@ -72,8 +65,8 @@ const ContainerForm = ({
         setIsModalOpen(false);
         isEditing && setIsEditing(false);
       }}
-      submitText="Registrar Contenedor"
-      editText="Actualizar Contenedor"
+      submitText="Registrar Envase"
+      editText="Actualizar Envase"
       data={[]}
     />
   );

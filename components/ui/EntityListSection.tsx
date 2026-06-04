@@ -20,6 +20,8 @@ type EntityListSectionProps<T extends EntityWithId> = DataTableProps<T> & {
   callBackActionWhenModalOpen?: () => void;
   modalContent: React.ReactNode;
   redirectsOnAdd?: boolean;
+  addButtonDisabled?: boolean;
+  addButtonDisabledMessage?: string;
 };
 
 export function EntityListSection<T extends EntityWithId>({
@@ -42,6 +44,8 @@ export function EntityListSection<T extends EntityWithId>({
   hasNestedData,
   renderNestedContent,
   redirectsOnAdd = false,
+  addButtonDisabled = false,
+  addButtonDisabledMessage,
 }: EntityListSectionProps<T>) {
   return (
     <section className="flex-1 p-4 lg:p-8">
@@ -52,20 +56,26 @@ export function EntityListSection<T extends EntityWithId>({
         <CardHeader>
           <CardTitle>Lista de {title}</CardTitle>
           <CardAction>
-            <Button
-              type="button"
-              className="bg-orange-500 hover:bg-orange-600 text-white"
-              size="sm"
-              onClick={() => {
-                if (redirectsOnAdd) {
-                  callBackActionWhenModalOpen?.();
-                  return;
-                }
-                setIsModalOpen(true);
-              }}
-            >
-              {addButtonText}
-            </Button>
+            <div className="flex flex-col items-end gap-1">
+              <Button
+                type="button"
+                className="bg-orange-500 hover:bg-orange-600 text-white"
+                size="sm"
+                disabled={addButtonDisabled}
+                onClick={() => {
+                  if (redirectsOnAdd) {
+                    callBackActionWhenModalOpen?.();
+                    return;
+                  }
+                  setIsModalOpen(true);
+                }}
+              >
+                {addButtonText}
+              </Button>
+              {addButtonDisabled && addButtonDisabledMessage && (
+                <p className="text-xs text-amber-600">{addButtonDisabledMessage}</p>
+              )}
+            </div>
           </CardAction>
         </CardHeader>
         <CardContent>
