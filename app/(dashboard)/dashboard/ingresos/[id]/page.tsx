@@ -18,9 +18,11 @@ import { getIcon } from "@/lib/icons/classificationIcons";
 import { ProductClassification } from "@/lib/db/schema";
 import { Entity } from "@/components/ui/comboBox";
 import { ArrowLeft, CheckCircle, ReceiptText } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
 
 export default function NewIncomePage() {
   const router = useRouter();
+  const { addToast } = useToast();
   const params = useParams();
   const incomeId = params?.id as string;
   const isCreating = incomeId === "0";
@@ -147,7 +149,12 @@ export default function NewIncomePage() {
     try {
       const action = isCreating ? addIncome : updateIncome;
       const result = await (action as any)({}, formData);
-      if (result?.success) router.push("/dashboard/proveedores");
+      if (result?.error) {
+        addToast(result.error, "error", 4000);
+      } else if (result?.success) {
+        addToast(result.success, "success");
+        await fetchIncomeData();
+      }
     } catch (error) {
       console.error("Error saving income:", error);
     } finally {

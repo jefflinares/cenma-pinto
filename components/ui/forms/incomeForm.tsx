@@ -9,7 +9,7 @@ import {
   ComboBoxWithModalProps,
   type Entity,
 } from "../comboBox";
-import { IncomeDetailRow } from "@/app/(dashboard)/dashboard/proveedores/page";
+import { IncomeDetailRow } from "@/app/(dashboard)/dashboard/proveedores/types";
 import { formatDDMMYYYYtoYYYYMMDD } from "@/lib/utils";
 import SaleForm from "./saleForm";
 import AddOrEditEntityComponent from "./addOrEditForm";
@@ -241,11 +241,6 @@ const IncomeForm = ({
         {/* Products table */}
         {productsData && productsData.length > 0 && (
           <>
-            {isEditing && !disabled && (
-              <p className="text-xs text-amber-600 mb-2">
-                El ingreso debe ser confirmado para poder registrar una venta
-              </p>
-            )}
             <div className="overflow-x-auto rounded-lg border border-gray-200">
               <table className="min-w-full text-sm">
                 <thead className="bg-gray-50">
@@ -268,7 +263,7 @@ const IncomeForm = ({
                     const detail = state.incomeDetails?.find(
                       (d) => d.productId === product.id,
                     );
-                    if (isEditing && detail?.quantity === undefined)
+                    if (disabled && detail?.quantity === undefined)
                       return null;
                     return (
                       <tr key={product.id}>
@@ -282,11 +277,9 @@ const IncomeForm = ({
                         )}
                         <td className="px-4 py-2 text-center">
                           <input
-                            type="number"
-                            min={0}
-                            step={1}
+                            type="text"
                             disabled={disabled}
-                            value={quantities[String(product.id)] ?? 0}
+                            value={quantities[String(product.id)]}
                             onChange={(e) =>
                               setQuantities((prev) => ({
                                 ...prev,
@@ -345,7 +338,7 @@ const IncomeForm = ({
         )}
       </form>
       {isEditing &&
-        state.id &&
+        state.id && 
         (() => {
           const addNewOrder = () => {
             const adjustedProducts =
@@ -415,6 +408,8 @@ const IncomeForm = ({
               <EntityListSection<OrderRow>
                   title="Ventas registradas"
                   addButtonText="Registrar Venta"
+                  addButtonDisabled={!disabled}
+                  addButtonDisabledMessage="El ingreso debe ser confirmado para poder registrar una venta"
                   isLoading={isLoadingOrders}
                   data={orders ?? []}
                   columns={[

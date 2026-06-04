@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Income, IncomeDetail, Provider } from "@/lib/db/schema";
+import { Income, Provider } from "@/lib/db/schema";
 import SupplierForm, {
   SupplierActionState,
 } from "@/components/ui/forms/supplier";
@@ -26,18 +26,11 @@ import { Entity } from "@/components/ui/comboBox";
 import { BadgeDollarSign, Check, ReceiptText } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { useRouter } from "next/navigation";
+import type { IncomeDetailRow, IncomeRow } from "./types";
+
+export type { IncomeDetailRow, IncomeRow };
 
 type ProviderRow = Provider;
-export type IncomeDetailRow = IncomeDetail & {
-  productName?: string;
-  stock: number;
-  unitPrice?: number;
-};
-export type IncomeRow = Income & {
-  formattedDate?: string;
-  providerName?: string;
-  incomeDetails?: IncomeDetailRow[];
-};
 
 export default function SuppliersPage() {
   const [comboBoxSelectedOption, setComboBoxSelectedOption] =
