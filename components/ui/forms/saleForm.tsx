@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, type SetStateAction } from "react";
 import { Label } from "../label";
 import { Input } from "../input";
 import { Button } from "../button";
@@ -56,11 +56,12 @@ const SaleForm = ({
   const [dismissedConflictCustomerId, setDismissedConflictCustomerId] = useState<number | null>(null);
   const [date, setDate] = useState(defaultDate);
 
-  const handleCustomerChange = (customer: Entity | null) => {
-    setSelectedCustomer(customer);
-    if (!orderId && customer && existingOrders?.length) {
+  const handleCustomerChange = (customer: SetStateAction<Entity | null>) => {
+    const resolved = typeof customer === "function" ? customer(selectedCustomer) : customer;
+    setSelectedCustomer(resolved);
+    if (!orderId && resolved && existingOrders?.length) {
       const conflict = existingOrders.find(
-        (o) => o.customerId === Number(customer.id),
+        (o) => o.customerId === Number(resolved.id),
       );
       setConflictOrder(conflict ?? null);
     } else {

@@ -3,8 +3,6 @@ import { validatedActionWithUser, ActionState } from "@/lib/auth/middleware";
 import z from "zod";
 import { db } from "@/lib/db/drizzle";
 import {
-  accountMovements,
-  customerAccounts,
   customerOrderDetails,
   customerOrders,
   incomeDetails,
@@ -40,11 +38,6 @@ export const addOrder = validatedActionWithUser(
         return { error: "Debe ingresar al menos un producto con cantidad y precio" };
       }
 
-      const orderTotal = activeDetails.reduce(
-        (sum, d) => sum + Number(d.quantity) * Number(d.unitPrice ?? 0),
-        0,
-      );
-
       const result = await db.transaction(async (tx) => {
         const [order] = await tx
           .insert(customerOrders)
@@ -76,41 +69,6 @@ export const addOrder = validatedActionWithUser(
             })
             .where(eq(incomeDetails.id, d.id));
         }
-
-        // Upsert customer account and record DEBIT movement
-        const [existingAccount] = await tx
-          .select({ id: customerAccounts.id, balance: customerAccounts.balance })
-          .from(customerAccounts)
-          .where(eq(customerAccounts.customerId, data.customerId as number));
-
-        let accountId: number;
-        if (existingAccount) {
-          await tx
-            .update(customerAccounts)
-            .set({
-              balance: String(Number(existingAccount.balance) + orderTotal),
-              updatedAt: new Date(),
-            })
-            .where(eq(customerAccounts.id, existingAccount.id));
-          accountId = existingAccount.id;
-        } else {
-          const [newAccount] = await tx
-            .insert(customerAccounts)
-            .values({
-              customerId: data.customerId as number,
-              balance: String(orderTotal),
-              updatedAt: new Date(),
-            })
-            .returning({ id: customerAccounts.id });
-          accountId = newAccount.id;
-        }
-
-        await tx.insert(accountMovements).values({
-          customerAccountId: accountId,
-          type: "DEBIT",
-          amount: String(orderTotal),
-          orderId: order.id,
-        });
 
         return order;
       });
@@ -171,7 +129,6 @@ export const updateOrder = validatedActionWithUser(
             id: customerOrderDetails.id,
             incomeDetailId: customerOrderDetails.incomeDetailId,
             quantity: customerOrderDetails.quantity,
-            price: customerOrderDetails.price,
           })
           .from(customerOrderDetails)
           .where(
@@ -181,13 +138,7 @@ export const updateOrder = validatedActionWithUser(
             ),
           );
 
-        // 3. Compute old total
-        const oldTotal = currentDetails.reduce(
-          (sum, d) => sum + Number(d.quantity) * Number(d.price),
-          0,
-        );
-
-        // 4. Update each active detail and adjust incomeDetail remainingQuantity
+        // 3. Update each active detail and adjust incomeDetail remainingQuantity
         for (const row of activeDetails) {
           const current = currentDetails.find((d) => d.incomeDetailId === row.id);
           if (!current) continue;
@@ -219,38 +170,43 @@ export const updateOrder = validatedActionWithUser(
           }
         }
 
-        // 5. Compute new total and delta
-        const newTotal = activeDetails.reduce(
-          (sum: number, d: any) => sum + Number(d.quantity) * Number(d.unitPrice ?? 0),
-          0,
+        // 4b. INSERT new rows (incomeDetailIds not already in currentDetails)
+        const newRows = orderDetails.filter(
+          (row: any) => !currentDetails.some((d) => d.incomeDetailId === row.id),
         );
-        const delta = newTotal - oldTotal;
-
-        // 6. Update customer account balance
-        if (delta !== 0) {
-          const [account] = await tx
-            .select({ id: customerAccounts.id, balance: customerAccounts.balance })
-            .from(customerAccounts)
-            .where(eq(customerAccounts.customerId, Number(customerId)));
-
-          if (account) {
-            await tx
-              .update(customerAccounts)
-              .set({
-                balance: String(Number(account.balance) + delta),
-                updatedAt: new Date(),
-              })
-              .where(eq(customerAccounts.id, account.id));
-
-            // 7. Record adjustment movement
-            await tx.insert(accountMovements).values({
-              customerAccountId: account.id,
-              type: delta > 0 ? "DEBIT" : "CREDIT",
-              amount: String(Math.abs(delta)),
-              orderId: orderId,
-            });
+        const activeNewRows = newRows.filter(
+          (d: any) => Number(d.quantity) > 0 && Number(d.unitPrice ?? 0) > 0,
+        );
+        if (activeNewRows.length > 0) {
+          await tx.insert(customerOrderDetails).values(
+            activeNewRows.map((d: any) => ({
+              orderId,
+              productId: d.productId,
+              containerId: d.containerId ?? 1,
+              incomeDetailId: d.id,
+              quantity: Number(d.quantity),
+              price: String(d.unitPrice ?? 0),
+            })),
+          );
+          for (const row of activeNewRows) {
+            const [incomeDetail] = await tx
+              .select({ remainingQuantity: incomeDetails.remainingQuantity })
+              .from(incomeDetails)
+              .where(eq(incomeDetails.id, row.id));
+            if (incomeDetail) {
+              await tx
+                .update(incomeDetails)
+                .set({
+                  remainingQuantity: Math.max(
+                    0,
+                    (incomeDetail.remainingQuantity ?? 0) - Number(row.quantity),
+                  ),
+                })
+                .where(eq(incomeDetails.id, row.id));
+            }
           }
         }
+
       });
 
       return { success: "Venta actualizada correctamente" };

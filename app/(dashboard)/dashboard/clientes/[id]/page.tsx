@@ -22,6 +22,7 @@ type MovementRow = {
   orderId: number | null;
   paymentId: number | null;
   formattedDate: string;
+  concept: string;
 };
 
 type OrderDetailRow = {
@@ -60,6 +61,7 @@ const movementColumns: Column<MovementRow>[] = [
       );
     },
   },
+  { header: "Concepto", field: "concept" },
   {
     header: "Monto",
     field: "amount",

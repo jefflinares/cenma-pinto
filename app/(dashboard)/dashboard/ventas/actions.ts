@@ -1,7 +1,7 @@
 "use server";
 
 import { logActivity } from "@/app/(login)/actions";
-import { validatedActionWithUser } from "@/lib/auth/middleware";
+import { validatedActionWithUser, ActionState } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/drizzle";
 import {
   ActivityType,
@@ -89,7 +89,7 @@ export const addCustomerPayment = validatedActionWithUser(
           .values({
             customerId: Number(customerId),
             orderId: Number(orderId),
-            date: new Date(String(date)),
+            date: new Date(`${String(date)}T12:00:00`),
             amount: String(requested),
             paymentType: String(paymentType),
             reference: String(reference ?? "") || null,
@@ -217,7 +217,7 @@ export const updateCustomerPayment = validatedActionWithUser(
           .update(payments)
           .set({
             amount: String(requested),
-            date: new Date(String(date)),
+            date: new Date(`${String(date)}T12:00:00`),
             paymentType: String(paymentType),
             reference: String(reference ?? "") || null,
           })
@@ -239,6 +239,16 @@ export const updateCustomerPayment = validatedActionWithUser(
               updatedAt: new Date(),
             })
             .where(eq(customerAccounts.id, account.id));
+
+          await tx
+            .update(accountMovements)
+            .set({ amount: String(requested) })
+            .where(
+              and(
+                eq(accountMovements.customerAccountId, account.id),
+                eq(accountMovements.paymentId, Number(id)),
+              ),
+            );
         }
 
         return updated;
@@ -317,6 +327,90 @@ export const deleteCustomerPayment = validatedActionWithUser(
       if (error?.message === "PAYMENT_NOT_FOUND") return { error: "El pago indicado no existe." };
       console.error("deleteCustomerPayment error", error);
       return { error: "Error al eliminar el pago." };
+    }
+  },
+);
+
+// ---------------------------------------------------------------------------
+// confirmOrder
+// ---------------------------------------------------------------------------
+
+const confirmOrderSchema = z.object({
+  id: z.string().min(1).transform(Number),
+});
+
+export const confirmOrder = validatedActionWithUser(
+  confirmOrderSchema,
+  async (data, _, user): Promise<ActionState> => {
+    const { id: orderId } = data as any;
+    try {
+      await db.transaction(async (tx) => {
+        const [order] = await tx
+          .select({ status: customerOrders.status, customerId: customerOrders.customerId })
+          .from(customerOrders)
+          .where(eq(customerOrders.id, orderId));
+
+        if (!order) throw new Error("ORDER_NOT_FOUND");
+        if (order.status === "confirmed" || order.status === "paid") {
+          throw new Error("ALREADY_CONFIRMED");
+        }
+
+        // Calculate order total
+        const [totalRow] = await tx
+          .select({
+            total: sql<string>`COALESCE(SUM(${customerOrderDetails.quantity}::numeric * ${customerOrderDetails.price}::numeric), 0)`,
+          })
+          .from(customerOrderDetails)
+          .where(
+            and(
+              eq(customerOrderDetails.orderId, orderId),
+              isNull(customerOrderDetails.deletedAt),
+            ),
+          );
+        const orderTotal = Number(totalRow?.total ?? 0);
+
+        // Update order status
+        await tx
+          .update(customerOrders)
+          .set({ status: "confirmed" })
+          .where(eq(customerOrders.id, orderId));
+
+        // Upsert customer account and insert DEBIT movement
+        let [account] = await tx
+          .select({ id: customerAccounts.id, balance: customerAccounts.balance })
+          .from(customerAccounts)
+          .where(eq(customerAccounts.customerId, order.customerId));
+
+        if (!account) {
+          const [inserted] = await tx
+            .insert(customerAccounts)
+            .values({ customerId: order.customerId, balance: "0" })
+            .returning();
+          account = inserted;
+        }
+
+        await tx
+          .update(customerAccounts)
+          .set({
+            balance: String(Number(account.balance) + orderTotal),
+            updatedAt: new Date(),
+          })
+          .where(eq(customerAccounts.id, account.id));
+
+        await tx.insert(accountMovements).values({
+          customerAccountId: account.id,
+          type: "DEBIT",
+          amount: String(orderTotal),
+          orderId: orderId,
+        });
+      });
+
+      return { success: "Venta confirmada exitosamente." };
+    } catch (error: any) {
+      if (error?.message === "ORDER_NOT_FOUND") return { error: "Venta no encontrada." };
+      if (error?.message === "ALREADY_CONFIRMED") return { error: "La venta ya está confirmada o pagada." };
+      console.error("confirmOrder error", error);
+      return { error: "Error al confirmar la venta." };
     }
   },
 );

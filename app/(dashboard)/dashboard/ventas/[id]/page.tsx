@@ -1,19 +1,24 @@
 "use client";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import useFetchData from "@/components/hooks/useFetchData";
 import OrderForm from "@/components/ui/forms/orderForm";
-import { Entity } from "@/components/ui/comboBox";
+import { Entity, ComboBoxWithModal } from "@/components/ui/comboBox";
 import { CustomerRow } from "../page";
 import { updateOrder } from "../nueva/actions";
 import { useToast } from "@/components/ui/toast";
-import { IncomeRow } from "../../proveedores/page";
+import { IncomeRow, IncomeDetailRow } from "../../proveedores/page";
 import { useEntityManager } from "@/components/hooks/useEntityManager";
-import { EntityListSection } from "@/components/ui/EntityListSection";
 import CustomerPaymentForm, { CustomerPaymentActionState } from "@/components/ui/forms/CustomerPaymentForm";
-import { addCustomerPayment, updateCustomerPayment, deleteCustomerPayment } from "../actions";
+import { addCustomerPayment, updateCustomerPayment, deleteCustomerPayment, confirmOrder } from "../actions";
 import { Column } from "@/components/ui/table";
+import { EntityListSection } from "@/components/ui/EntityListSection";
 import { Pencil, Trash2 } from "lucide-react";
+import OrderItemsTable from "@/components/ui/forms/OrderItemsTable";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Modal } from "@/components/ui/modal";
+import { generateCustomerOrderReceiptPdf } from "@/lib/payments/customerOrderReceiptPdf";
 
 type OrderDetailRow = {
   id: number;
@@ -77,6 +82,13 @@ const EditSale = () => {
 
   const [comboBoxSelectedOption, setComboBoxSelectedOption] = useState<Entity | null>(null);
   const [isPending, setIsPending] = useState(false);
+  const [localStatus, setLocalStatus] = useState<string | null>(null);
+  const [extraIncomes, setExtraIncomes] = useState<IncomeRow[]>([]);
+  const [extraOrderRows, setExtraOrderRows] = useState<IncomeDetailRow[]>([]);
+  const [showIncomePicker, setShowIncomePicker] = useState(false);
+  const [pickerSelectedIncome, setPickerSelectedIncome] = useState<Entity | null>(null);
+  const [duplicateProducts, setDuplicateProducts] = useState<string[]>([]);
+  const pendingFormDataRef = useRef<FormData | null>(null);
 
   const { data: orderRaw, isLoading: isLoadingOrder } =
     useFetchData<never>(`/api/orders?orderId=${orderId}`);
@@ -86,7 +98,10 @@ const EditSale = () => {
   const { data: customers, isLoading: isLoadingCustomers } =
     useFetchData<CustomerRow>("/api/customers");
 
-  const isLocked = order?.status === "confirmed" || order?.status === "paid";
+  const { data: availableIncomes } = useFetchData<IncomeRow>("/api/incomes?withAvailableStock=true");
+
+  const effectiveStatus = localStatus ?? order?.status;
+  const isLocked = effectiveStatus === "confirmed" || effectiveStatus === "paid";
 
   const {
     data: paymentsData,
@@ -97,7 +112,6 @@ const EditSale = () => {
     setIsModalOpen: setIsPaymentModalOpen,
     selectedEntity: selectedPayment,
     setSelectedEntity: setSelectedPayment,
-    state: paymentState,
     formAction: paymentFormAction,
     isPending: isPaymentPending,
     handleOnDelete: handlePaymentDelete,
@@ -154,8 +168,20 @@ const EditSale = () => {
   const remaining = orderTotal - totalPaid + editingPaymentAmount;
   const remainingText = `Q${remaining.toFixed(2)}`;
 
-  const handleFormAction = async (formData: FormData) => {
-    formData.set("id", orderId);
+  const handleConfirmOrder = async () => {
+    setIsPending(true);
+    try {
+      const fd = new FormData();
+      fd.set("id", orderId);
+      const result = await (confirmOrder as any)({}, fd);
+      if (result?.error) addToast(result.error, "error", 4000);
+      else if (result?.success) { addToast(result.success, "success"); setLocalStatus("confirmed"); }
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  const executeUpdate = async (formData: FormData) => {
     setIsPending(true);
     try {
       const result = await (updateOrder as any)({}, formData);
@@ -163,13 +189,34 @@ const EditSale = () => {
         addToast(result.error, "error", 4000);
       } else if (result?.success) {
         addToast(result.success, "success");
-        router.push("/dashboard/ventas");
       }
     } catch {
       addToast("Error al actualizar la venta", "error", 4000);
     } finally {
       setIsPending(false);
     }
+  };
+
+  const handleFormAction = async (formData: FormData) => {
+    formData.set("id", orderId);
+    const existingDetails = JSON.parse((formData.get("orderDetails") as string) ?? "[]");
+    const activeExtra = extraOrderRows.filter(
+      (r) => Number(r.quantity) > 0 && Number(r.unitPrice ?? 0) > 0,
+    );
+    formData.set("orderDetails", JSON.stringify([...existingDetails, ...activeExtra]));
+
+    const existingProductIds = new Set((order?.orderDetails ?? []).map((d) => d.productId));
+    const dupes = activeExtra
+      .filter((r) => existingProductIds.has(r.productId))
+      .map((r) => r.productName ?? String(r.productId));
+
+    if (dupes.length > 0) {
+      pendingFormDataRef.current = formData;
+      setDuplicateProducts(dupes);
+      return;
+    }
+
+    await executeUpdate(formData);
   };
 
   const isLoading = isLoadingOrder || isLoadingCustomers;
@@ -179,7 +226,7 @@ const EditSale = () => {
 
   return (
     <div className="flex-1 p-4 lg:p-8 max-w-none w-full">
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-6 flex-wrap">
         <button
           type="button"
           onClick={() => router.push("/dashboard/ventas")}
@@ -187,35 +234,138 @@ const EditSale = () => {
         >
           ← Regresar
         </button>
-        <h1 className="text-lg font-medium text-gray-900">
+        <h1 className="text-lg font-medium text-gray-900 flex-1">
           Editar Venta #{order.id}
         </h1>
+        {!isLocked && (
+          <Button onClick={() => setShowIncomePicker((v) => !v)} variant="outline">
+            + Agregar más productos
+          </Button>
+        )}
+        <Button
+          variant="outline"
+          onClick={() =>
+            generateCustomerOrderReceiptPdf({
+              id: order.id,
+              customerName: order.customerName,
+              formattedDate: order.formattedDate,
+              orderDetails: order.orderDetails.map((d) => ({
+                productName: d.productName,
+                quantity: d.quantity,
+                price: d.price,
+              })),
+              payments: (paymentsData ?? []).map((p) => ({
+                ...p,
+                formattedDate: p.formattedDate ?? undefined,
+                date: p.date ?? undefined,
+              })),
+            })
+          }
+        >
+          Imprimir Orden
+        </Button>
+        {!isLocked && (
+          <Button
+            onClick={handleConfirmOrder}
+            disabled={isPending}
+            className="bg-green-600 hover:bg-green-700 text-white"
+          >
+            Confirmar Venta
+          </Button>
+        )}
       </div>
 
-      <OrderForm
-        isLoading={false}
-        isPending={isPending}
-        isEditing={true}
-        preserveValues={true}
-        readOnly={isLocked}
-        customersData={customers?.map((c) => ({ id: c.id, name: c.name })) ?? []}
-        incomes={[syntheticIncome]}
-        productsData={[]}
-        data={[]}
-        formAction={handleFormAction}
-        state={order as any}
-        setIsModalOpen={() => {}}
-        setIsEditing={() => {}}
-        selectedOption={
-          comboBoxSelectedOption ?? { id: order.customerId, name: order.customerName }
-        }
-        setComboBoxSelectedOption={setComboBoxSelectedOption}
-        modalChildren={<></>}
-      />
+      <div className="bg-white rounded-lg shadow p-6 w-full space-y-6">
+        {!isLocked && showIncomePicker && (
+          <div className="flex items-end gap-3">
+            <div className="flex-1">
+              <Label>Seleccionar ingreso</Label>
+              <ComboBoxWithModal
+                name="extraIncomeId"
+                selectedOption={pickerSelectedIncome}
+                setComboBoxSelectedOption={setPickerSelectedIncome}
+                data={(availableIncomes ?? [])
+                  .filter(
+                    (i) =>
+                      i.id !== order.incomeId &&
+                      !extraIncomes.some((e) => e.id === i.id),
+                  )
+                  .map((i) => ({
+                    id: i.id!,
+                    name: `#${i.id} – ${i.providerName} (${i.formattedDate})`,
+                  }))}
+              />
+            </div>
+            <Button
+              onClick={() => {
+                const found = availableIncomes?.find(
+                  (i) => i.id === pickerSelectedIncome?.id,
+                );
+                if (found) {
+                  setExtraIncomes((prev) => [...prev, found]);
+                  setPickerSelectedIncome(null);
+                  setShowIncomePicker(false);
+                }
+              }}
+              disabled={!pickerSelectedIncome}
+            >
+              Agregar sección
+            </Button>
+          </div>
+        )}
 
-      {isLocked && (
-        <div className="mt-8">
+        <OrderForm
+          isLoading={false}
+          isPending={isPending}
+          isEditing={true}
+          preserveValues={true}
+          readOnly={isLocked}
+          customersData={customers?.map((c) => ({ id: c.id, name: c.name })) ?? []}
+          incomes={[syntheticIncome]}
+          productsData={[]}
+          data={[]}
+          formAction={handleFormAction}
+          state={order as any}
+          setIsModalOpen={() => {}}
+          setIsEditing={() => {}}
+          selectedOption={
+            comboBoxSelectedOption ?? { id: order.customerId, name: order.customerName }
+          }
+          setComboBoxSelectedOption={setComboBoxSelectedOption}
+          modalChildren={<></>}
+        />
+
+        {extraIncomes.map((income) => (
+          <div key={income.id}>
+            <hr className="border-gray-200" />
+            <Label className="mt-4 block">
+              Proveedor: {income.providerName} · {income.formattedDate} · #{income.id}
+            </Label>
+            <div className="mt-3">
+              <OrderItemsTable
+                rows={income.incomeDetails as IncomeDetailRow[]}
+                preserveValues={false}
+                readOnly={false}
+                onValidationChange={() => {}}
+                onChange={(updatedRow) => {
+                  setExtraOrderRows((prev) => {
+                    const idx = prev.findIndex((r) => r.id === updatedRow.id);
+                    if (idx !== -1) {
+                      const next = [...prev];
+                      next[idx] = updatedRow;
+                      return next;
+                    }
+                    return [...prev, updatedRow];
+                  });
+                }}
+              />
+            </div>
+          </div>
+        ))}
+
+        {isLocked && (
           <EntityListSection<PaymentRow>
+            className="p-0"
             title="Pagos"
             subtitle={`Total: Q${orderTotal.toFixed(2)} · Pagado: Q${totalPaid.toFixed(2)} · Pendiente: Q${(orderTotal - totalPaid).toFixed(2)}`}
             addButtonText="+ Registrar Pago"
@@ -225,14 +375,8 @@ const EditSale = () => {
             data={paymentsData ?? []}
             columns={paymentColumns}
             actions={[
-              {
-                action: "edit",
-                component: <Pencil size={16} />,
-              },
-              {
-                action: "delete",
-                component: <Trash2 size={16} />,
-              },
+              { action: "edit", component: <Pencil size={16} /> },
+              { action: "delete", component: <Trash2 size={16} /> },
             ]}
             currentPage={paymentPage}
             totalItems={paymentsData?.length ?? 0}
@@ -266,7 +410,40 @@ const EditSale = () => {
               />
             }
           />
-        </div>
+        )}
+      </div>
+      {duplicateProducts.length > 0 && (
+        <Modal
+          title="Producto duplicado"
+          setIsModalOpen={() => setDuplicateProducts([])}
+          onCancelText="Cancelar"
+          onCancelAction={() => {
+            setDuplicateProducts([]);
+            pendingFormDataRef.current = null;
+          }}
+          onConfirmationText="Continuar de todas formas"
+          onConfirmAction={() => {
+            const fd = pendingFormDataRef.current;
+            pendingFormDataRef.current = null;
+            setDuplicateProducts([]);
+            if (fd) executeUpdate(fd);
+          }}
+          width="max-w-md"
+        >
+          <div className="space-y-3">
+            <p className="text-amber-700 font-medium">
+              El ingreso seleccionado contiene productos que ya están en esta orden con diferente precio:
+            </p>
+            <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+              {duplicateProducts.map((name) => (
+                <li key={name}>{name}</li>
+              ))}
+            </ul>
+            <p className="text-sm text-gray-500">
+              ¿Desea continuar de todas formas?
+            </p>
+          </div>
+        </Modal>
       )}
     </div>
   );

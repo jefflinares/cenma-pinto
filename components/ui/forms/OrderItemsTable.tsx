@@ -79,6 +79,7 @@ export default function OrderItemsTable({ rows, onChange, onValidationChange, pr
       <table className="min-w-full text-sm table-auto">
         <thead className="bg-gray-100">
           <tr>
+            <th className="px-3 py-2 text-center text-gray-500 font-medium"># Ingreso</th>
             <th className="px-3 py-2 text-left">Producto</th>
             <th className="px-3 py-2 text-center">Unidades Disponibles</th>
             <th className="px-3 py-2 text-center">Cantidad</th>
@@ -91,6 +92,9 @@ export default function OrderItemsTable({ rows, onChange, onValidationChange, pr
         <tbody>
           {items.map((item) => (
             <tr key={item.id} className="border-t">
+              <td className="px-3 py-2 text-center text-gray-400 text-xs font-mono">
+                {item.incomeId}
+              </td>
               <td className="px-3 py-2">{item.productName}</td>
               <td className="px-3 py-2 text-center text-gray-600">
                 {item.stock}
@@ -165,7 +169,7 @@ export default function OrderItemsTable({ rows, onChange, onValidationChange, pr
         <tfoot className="bg-gray-50">
           <tr>
             <td
-              colSpan={4}
+              colSpan={5}
               className="px-3 py-2 text-right font-semibold align-middle"
             >
               SubTotal

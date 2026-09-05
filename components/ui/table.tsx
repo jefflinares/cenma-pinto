@@ -214,16 +214,16 @@ export default function DataTable<T extends EntityWithId>({
                         
                         return <div key={idx}>{renderedComponent}</div>;
                       })}
-                      {editAction &&
-                        (!editAction.renderCondition ||
-                          editAction.renderCondition(row)) &&
-                        editActionComponent(row)}
-                      {!editAction && editActionComponent(row)}
-                      {deleteAction &&
-                        (!deleteAction.renderCondition ||
-                          deleteAction.renderCondition(row)) &&
-                        deleteActionComponent(row)}
-                      {!deleteAction && deleteActionComponent(row)}
+                      {editAction
+                        ? editAction.component !== null &&
+                          (!editAction.renderCondition || editAction.renderCondition(row)) &&
+                          editActionComponent(row)
+                        : editActionComponent(row)}
+                      {deleteAction
+                        ? deleteAction.component !== null &&
+                          (!deleteAction.renderCondition || deleteAction.renderCondition(row)) &&
+                          deleteActionComponent(row)
+                        : deleteActionComponent(row)}
                     </td>
                   </tr>
                   {/* Expanded row content */}

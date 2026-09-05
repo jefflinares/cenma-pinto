@@ -7,9 +7,9 @@ import CustomerForm, {
   CustomerActionState,
 } from "@/components/ui/forms/customerForm";
 import AddOrEditEntityComponent from "@/components/ui/forms/addOrEditForm";
-import NestedTable from "@/components/ui/NestedTable";
 import useFetchData from "@/components/hooks/useFetchData";
 import { useRouter } from "next/navigation";
+import NestedTable from "@/components/ui/NestedTable";
 
 export type CustomerRow = Customer;
 
@@ -126,6 +126,7 @@ export default function SalesPage() {
         redirectsOnAdd={true}
         isLoading={isLoadingOrders}
         data={orders ?? []}
+        actions={[{ action: "delete", component: null }]}
         columns={[
           { header: "# Orden", field: "id" },
           {
@@ -175,39 +176,42 @@ export default function SalesPage() {
         onPageChange={() => {}}
         onEdit={(order) => router.push(`/dashboard/ventas/${order.id}`)}
         onDelete={() => {}}
+        onRowClick={(order) => router.push(`/dashboard/ventas/${order.id}`)}
+        hasNestedData={(order) => (order.orderDetails?.length ?? 0) > 0}
+        renderNestedContent={(order) => (
+          <NestedTable<OrderDetailRow>
+            title="Detalle de productos"
+            data={order.orderDetails ?? []}
+            columns={[
+              { header: "Producto", field: "productName" },
+              { header: "Cantidad", field: "quantity" },
+              {
+                header: "Precio Unit.",
+                field: "price",
+                render: (val) => `Q. ${Number(val).toFixed(2)}`,
+              },
+              {
+                header: "Subtotal",
+                field: "price",
+                render: (val, row) =>
+                  `Q. ${(Number(row.quantity) * Number(row.price)).toFixed(2)}`,
+              },
+            ]}
+            footer={[
+              "Total",
+              "",
+              "",
+              `Q. ${order.orderDetails.reduce(
+                (sum, d) => sum + Number(d.quantity) * Number(d.price),
+                0,
+              ).toFixed(2)}`,
+            ]}
+          />
+        )}
         isModalOpen={false}
         setIsModalOpen={() => {}}
         modalContent={null}
         callBackActionWhenModalOpen={() => router.push("/dashboard/ventas/nueva")}
-        hasNestedData={(row) => row.orderDetails?.length > 0}
-        renderNestedContent={(row) => {
-          const orderTotal = row.orderDetails.reduce(
-            (sum, d) => sum + Number(d.quantity) * Number(d.price),
-            0,
-          );
-          return (
-            <NestedTable
-              title="Detalle de Venta"
-              data={row.orderDetails}
-              columns={[
-                { header: "Producto", field: "productName" },
-                { header: "Cantidad", field: "quantity" },
-                {
-                  header: "Precio",
-                  field: "price",
-                  render: (value) => `Q. ${Number(value).toFixed(2)}`,
-                },
-                {
-                  header: "Subtotal",
-                  field: "price",
-                  render: (value, d) =>
-                    `Q. ${(Number((d as any).quantity) * Number(value)).toFixed(2)}`,
-                },
-              ]}
-              footer={["Total", "", "", `Q. ${orderTotal.toFixed(2)}`]}
-            />
-          );
-        }}
       />
     </>
   );

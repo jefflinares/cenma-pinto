@@ -80,7 +80,7 @@ const OrderForm = ({
 
   return (
     <form
-      className="space-y-4 px-4 sm:px-6 lg:px-0 pb-24"
+      className={`space-y-4 px-4 sm:px-6 lg:px-0 ${readOnly ? "pb-0" : "pb-24"}`}
       ref={formRef}
       action={props.formAction}
       onSubmit={handleSubmit}

@@ -23,6 +23,7 @@ type EntityListSectionProps<T extends EntityWithId> = DataTableProps<T> & {
   redirectsOnAdd?: boolean;
   addButtonDisabled?: boolean;
   addButtonDisabledMessage?: string;
+  className?: string;
 };
 
 export function EntityListSection<T extends EntityWithId>({
@@ -49,9 +50,10 @@ export function EntityListSection<T extends EntityWithId>({
   redirectsOnAdd = false,
   addButtonDisabled = false,
   addButtonDisabledMessage,
+  className,
 }: EntityListSectionProps<T>) {
   return (
-    <section className="flex-1 p-4 lg:p-8">
+    <section className={className ?? "flex-1 p-4 lg:p-8"}>
       <h1 className="text-lg lg:text-2xl font-medium text-gray-900 mb-6">
         {title}
       </h1>

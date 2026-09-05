@@ -1,6 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 import { db } from "../drizzle";
-import { accountMovements, customerAccounts } from "../schema";
+import { accountMovements, customerAccounts, payments } from "../schema";
 import { validateSession } from "./util";
 
 export async function getAccountMovementsByCustomerId(customerId: number) {
@@ -22,13 +22,28 @@ export async function getAccountMovementsByCustomerId(customerId: number) {
       orderId: accountMovements.orderId,
       paymentId: accountMovements.paymentId,
       createdAt: accountMovements.createdAt,
+      paymentType: payments.paymentType,
     })
     .from(accountMovements)
+    .leftJoin(payments, eq(accountMovements.paymentId, payments.id))
     .where(eq(accountMovements.customerAccountId, account.id))
     .orderBy(desc(accountMovements.createdAt));
+
+  const paymentTypeLabel: Record<string, string> = {
+    cash: "Efectivo",
+    transfer: "Transferencia",
+    card: "Tarjeta",
+    check: "Cheque",
+  };
 
   return rows.map((r) => ({
     ...r,
     formattedDate: new Date(r.createdAt).toLocaleDateString("en-GB"),
+    concept:
+      r.type === "CREDIT"
+        ? (paymentTypeLabel[r.paymentType ?? ""] ?? "Pago")
+        : r.orderId
+          ? `Venta #${r.orderId}`
+          : "Cargo",
   }));
 }
