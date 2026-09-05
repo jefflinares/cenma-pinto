@@ -90,10 +90,7 @@ export async function getIncomes(params: IncomeParams) {
     }),
   );
 
-  incomes.forEach((income) => {
-    console.log("Incomes: ", income.incomeDetails);
-  });
-  if (incomes.length === 0) {
+if (incomes.length === 0) {
     return [];
   }
 
