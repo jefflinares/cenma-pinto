@@ -9,5 +9,9 @@ if (!process.env.POSTGRES_URL) {
   throw new Error('POSTGRES_URL environment variable is not set');
 }
 
-export const client = postgres(process.env.POSTGRES_URL);
+export const client = postgres(process.env.POSTGRES_URL, {
+  connect_timeout: 10, // fail fast instead of waiting 30s on cold start
+  idle_timeout: 20,    // keep idle connections alive (avoids cold reconnect)
+  max: 10,
+});
 export const db = drizzle(client, { schema });

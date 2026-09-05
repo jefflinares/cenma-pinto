@@ -6,7 +6,14 @@ const fetcher = async (url: string) => {
     window.location.href = '/sign-in';
     return;
   }
-  return res.json();
+  const text = await res.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    console.error(`[useFetchData] Invalid JSON from ${url}:`, text.slice(0, 200));
+    return null;
+  }
 };
 
 const useFetchData = <T>(route: string) => {

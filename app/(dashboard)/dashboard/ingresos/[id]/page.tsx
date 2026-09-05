@@ -44,39 +44,27 @@ export default function NewIncomePage() {
 
   const isConfirmed = !isCreating && incomeData?.status !== "draft";
 
-  const fetchIncomeData = async (supplierEntities?: Entity[], productsData?: any[]) => {
+  const safeJson = async (res: Response) => {
+    const text = await res.text();
+    if (!text) return null;
+    try { return JSON.parse(text); } catch { return null; }
+  };
+
+  // Refresh income+settlement after save/confirm (incomeId already known, fetch in parallel)
+  const fetchIncomeData = async () => {
     if (isCreating) return;
     try {
-      const incomeRes = await fetch(`/api/incomes?incomeId=${incomeId}`);
-      const incomeJson = await incomeRes.json();
+      const [incomeRes, settlementRes] = await Promise.all([
+        fetch(`/api/incomes?incomeId=${incomeId}`),
+        fetch(`/api/settlements?incomeId=${incomeId}`),
+      ]);
+      const [incomeJson, settlementJson] = await Promise.all([
+        safeJson(incomeRes),
+        safeJson(settlementRes),
+      ]);
       const income = Array.isArray(incomeJson) ? incomeJson[0] : incomeJson;
       setIncomeData(income);
-      const settlementRes = await fetch(`/api/settlements?incomeId=${income.id}`);
-      const settlementJson = await settlementRes.json();
       setSettlementData(Array.isArray(settlementJson) ? settlementJson[0] : null);
-      if (income?.providerId && supplierEntities) {
-        setSelectedProvider({
-          id: income.providerId,
-          name:
-            income.providerName ||
-            supplierEntities.find((s: Entity) => s.id === income.providerId)?.name ||
-            "",
-        });
-      }
-      if (income?.incomeDetails?.length && productsData) {
-        const detailProductIds = new Set(
-          income.incomeDetails.map((d: any) => d.productId),
-        );
-        const classificationIds = [
-          ...new Set(
-            productsData
-              .filter((p: any) => detailProductIds.has(p.id))
-              .map((p: any) => p.productClassificationId)
-              .filter(Boolean),
-          ),
-        ];
-        setSelectedClassifications(classificationIds as (string | number)[]);
-      }
     } catch (error) {
       console.error("Error fetching income data:", error);
     }
@@ -87,26 +75,61 @@ export default function NewIncomePage() {
       try {
         setIsLoading(true);
 
-        const [classRes, productsRes, suppliersRes, customersRes] = await Promise.all([
-          fetch("/api/productClassification"),
-          fetch("/api/product"),
-          fetch("/api/supplier"),
-          fetch("/api/customers"),
-        ]);
+        // Fire all requests in parallel — catalog + income data at the same time
+        const [classRes, productsRes, suppliersRes, customersRes, incomeRes, settlementRes] =
+          await Promise.all([
+            fetch("/api/productClassification"),
+            fetch("/api/product"),
+            fetch("/api/supplier"),
+            fetch("/api/customers"),
+            isCreating ? Promise.resolve(null) : fetch(`/api/incomes?incomeId=${incomeId}`),
+            isCreating ? Promise.resolve(null) : fetch(`/api/settlements?incomeId=${incomeId}`),
+          ]);
 
-        const productsData = (await productsRes.json()) || [];
-        setClassifications((await classRes.json()) || []);
-        setAllProducts(productsData);
-        const suppliersData = await suppliersRes.json();
-        const supplierEntities =
-          suppliersData?.map((s: any) => ({ id: s.id, name: s.name })) || [];
+        // Parse all responses in parallel
+        const [classData, productsData, suppliersData, customersData, incomeJson, settlementJson] =
+          await Promise.all([
+            safeJson(classRes!),
+            safeJson(productsRes!),
+            safeJson(suppliersRes!),
+            safeJson(customersRes!),
+            incomeRes ? safeJson(incomeRes) : Promise.resolve(null),
+            settlementRes ? safeJson(settlementRes) : Promise.resolve(null),
+          ]);
+
+        setClassifications(classData ?? []);
+        setAllProducts(productsData ?? []);
+        const supplierEntities = (suppliersData ?? []).map((s: any) => ({ id: s.id, name: s.name }));
         setSuppliers(supplierEntities);
-        const customersData = await customersRes.json();
-        setCustomers(
-          (customersData ?? []).map((c: any) => ({ id: c.id, name: c.name })),
-        );
+        setCustomers((customersData ?? []).map((c: any) => ({ id: c.id, name: c.name })));
 
-        await fetchIncomeData(supplierEntities, productsData);
+        if (!isCreating && incomeJson) {
+          const income = Array.isArray(incomeJson) ? incomeJson[0] : incomeJson;
+          setIncomeData(income);
+          setSettlementData(Array.isArray(settlementJson) ? settlementJson[0] : null);
+
+          if (income?.providerId) {
+            setSelectedProvider({
+              id: income.providerId,
+              name:
+                income.providerName ||
+                supplierEntities.find((s: Entity) => s.id === income.providerId)?.name ||
+                "",
+            });
+          }
+          if (income?.incomeDetails?.length && productsData?.length) {
+            const detailProductIds = new Set(income.incomeDetails.map((d: any) => d.productId));
+            const classificationIds = [
+              ...new Set(
+                (productsData as any[])
+                  .filter((p) => detailProductIds.has(p.id))
+                  .map((p) => p.productClassificationId)
+                  .filter(Boolean),
+              ),
+            ];
+            setSelectedClassifications(classificationIds as (string | number)[]);
+          }
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {

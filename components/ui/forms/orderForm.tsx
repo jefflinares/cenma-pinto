@@ -49,7 +49,12 @@ const OrderForm = ({
   const [selectedIncomeId, setSelectedIncomeId] = React.useState<number | null>(
     props.incomes?.length === 1 ? (props.incomes[0].id ?? null) : null
   );
-  const [updatedOrderRows, setUpdatedOrderRows] = React.useState<IncomeDetailRow[]>([]);
+  const [updatedOrderRows, setUpdatedOrderRows] = React.useState<IncomeDetailRow[]>(() => {
+    if (preserveValues && props.incomes) {
+      return props.incomes.flatMap((i) => (i.incomeDetails as IncomeDetailRow[]) ?? []);
+    }
+    return [];
+  });
   const [hasTableErrors, setHasTableErrors] = React.useState(false);
   console.log("🚀 ~ OrderForm ~ updatedOrderRows:", updatedOrderRows);
 

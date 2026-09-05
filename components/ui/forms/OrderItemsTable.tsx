@@ -20,7 +20,7 @@ export default function OrderItemsTable({ rows, onChange, onValidationChange, pr
   }, [rows]);
 
   const [errors, setErrors] = useState<
-    Record<number, { field: string; message: string | null } | null>
+    Record<number, { field: string; message: string | null; blocking?: boolean } | null>
   >({});
 
   const updateItem = (
@@ -36,8 +36,9 @@ export default function OrderItemsTable({ rows, onChange, onValidationChange, pr
       if (field === "quantity") {
         const qty = value ?? 0;
         if (qty > item.stock) {
-          nextErrors = { ...nextErrors, [id]: { field: "quantity", message: `Cantidad máxima: ${item.stock}` } };
-          newItem = { ...item, [field]: +String(item.stock) };
+          // Clamp to max, show informational warning but don't block submission
+          nextErrors = { ...nextErrors, [id]: { field: "quantity", message: `Cantidad máxima: ${item.stock}`, blocking: false } };
+          newItem = { ...item, [field]: item.stock };
         } else if (qty < 0) {
           nextErrors = { ...nextErrors, [id]: { field: "quantity", message: "Cantidad no puede ser negativa" } };
           newItem = { ...item, [field]: 0 };
@@ -66,7 +67,7 @@ export default function OrderItemsTable({ rows, onChange, onValidationChange, pr
     });
     setItems(updated);
     setErrors(nextErrors);
-    onValidationChange?.(Object.values(nextErrors).some((e) => e !== null));
+    onValidationChange?.(Object.values(nextErrors).some((e) => e !== null && e.blocking !== false));
   };
   const total = items.reduce(
     (sum, item) => sum + +item.quantity * (item.unitPrice ?? 0),
