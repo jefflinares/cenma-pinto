@@ -99,13 +99,22 @@ const CustomerPaymentForm = ({
     },
   ];
 
+  // Ensure paymentType is always injected from local state,
+  // since the hidden input value may not propagate reliably.
+  const wrappedFormAction = async (formData: FormData) => {
+    if (selectedPaymentType?.id) {
+      formData.set("paymentType", String(selectedPaymentType.id));
+    }
+    await formAction(formData);
+  };
+
   return (
     <GenericForm
       fields={fields}
       state={state as GenericFormState}
       isPending={isPending}
       isEditing={isEditing}
-      formAction={formAction}
+      formAction={wrappedFormAction}
       onCancel={() => {
         setIsModalOpen(false);
         setIsEditing(false);

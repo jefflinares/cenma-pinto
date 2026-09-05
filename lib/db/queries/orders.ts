@@ -114,6 +114,49 @@ export async function getOrderById(orderId: number) {
   };
 }
 
+export async function getOrdersByCustomerId(customerId: number) {
+  const sessionData = await validateSession();
+  if (!sessionData) throw new Error("Invalid session");
+
+  const orders = await db
+    .select({
+      id: customerOrders.id,
+      incomeId: customerOrders.incomeId,
+      customerId: customerOrders.customerId,
+      customerName: customers.name,
+      date: customerOrders.date,
+      status: customerOrders.status,
+      createdAt: customerOrders.createdAt,
+    })
+    .from(customerOrders)
+    .innerJoin(customers, eq(customerOrders.customerId, customers.id))
+    .where(and(isNull(customerOrders.deletedAt), eq(customerOrders.customerId, customerId)))
+    .orderBy(desc(customerOrders.createdAt));
+
+  return Promise.all(
+    orders.map(async (order) => ({
+      ...order,
+      formattedDate: new Date(order.date).toLocaleDateString("en-GB"),
+      orderDetails: await db
+        .select({
+          id: customerOrderDetails.id,
+          productId: customerOrderDetails.productId,
+          productName: products.name,
+          quantity: customerOrderDetails.quantity,
+          price: customerOrderDetails.price,
+        })
+        .from(customerOrderDetails)
+        .innerJoin(products, eq(products.id, customerOrderDetails.productId))
+        .where(
+          and(
+            isNull(customerOrderDetails.deletedAt),
+            eq(customerOrderDetails.orderId, order.id),
+          ),
+        ),
+    })),
+  );
+}
+
 export async function getOrdersByIncomeId(incomeId: number) {
   const sessionData = await validateSession();
   if (!sessionData) {

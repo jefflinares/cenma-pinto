@@ -71,7 +71,21 @@ export default function SalesPage() {
         isLoading={isLoading}
         data={customers ?? []}
         columns={[
-          { header: "Nombre", field: "name" },
+          {
+            header: "Nombre",
+            field: "name",
+            render: (value, row) => (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/dashboard/clientes/${(row as CustomerRow).id}`);
+                }}
+                className="text-orange-600 hover:underline font-medium"
+              >
+                {String(value)}
+              </button>
+            ),
+          },
           { header: "Teléfono", field: "phone" },
           { header: "Email", field: "email" },
           { header: "Dirección", field: "address" },
@@ -114,7 +128,21 @@ export default function SalesPage() {
         data={orders ?? []}
         columns={[
           { header: "# Orden", field: "id" },
-          { header: "Cliente", field: "customerName" },
+          {
+            header: "Cliente",
+            field: "customerName",
+            render: (value, row) => (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/dashboard/clientes/${(row as OrderRow).customerId}`);
+                }}
+                className="text-orange-600 hover:underline font-medium"
+              >
+                {String(value)}
+              </button>
+            ),
+          },
           { header: "Fecha", field: "formattedDate" },
           { header: "Ingreso ID", field: "incomeId" },
           {
