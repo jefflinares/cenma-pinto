@@ -7,7 +7,7 @@ const Pagos = () => {
   const params = useParams();
   const incomeId = params.id as string;
 
-  return <ProviderSettlementPage incomeId={incomeId} mode="edit" />;
+  return <ProviderSettlementPage incomeId={incomeId} mode="edit" backHref="/dashboard/proveedores" />;
 };
 
 export default Pagos;

@@ -1,22 +1,40 @@
 "use client";
 import { useEntityManager } from "@/components/hooks/useEntityManager";
-import { addCustomer, deleteCustomer, updateCustomer } from "./actions";
+import { addCustomer, deleteCustomer, updateCustomer } from "../clientes/actions";
 import { EntityListSection } from "@/components/ui/EntityListSection";
-import { Customer, CustomerOrder } from "@/lib/db/schema";
+import { Customer } from "@/lib/db/schema";
 import CustomerForm, {
   CustomerActionState,
 } from "@/components/ui/forms/customerForm";
 import AddOrEditEntityComponent from "@/components/ui/forms/addOrEditForm";
-import OrderForm, { OrderActionState } from "@/components/ui/forms/orderForm";
+import NestedTable from "@/components/ui/NestedTable";
+import useFetchData from "@/components/hooks/useFetchData";
 import { useRouter } from "next/navigation";
 
 export type CustomerRow = Customer;
 
-export type OrderRow = CustomerOrder;
+type OrderDetailRow = {
+  id: number;
+  productId: number;
+  productName: string;
+  quantity: string;
+  price: string;
+};
+
+type OrderRow = {
+  id: number;
+  incomeId: number;
+  customerId: number;
+  customerName: string;
+  customerBalance: string | null;
+  date: Date;
+  formattedDate: string;
+  status: "draft" | "pending" | "confirmed" | "paid";
+  orderDetails: OrderDetailRow[];
+};
 
 export default function SalesPage() {
   const router = useRouter();
-
   const {
     data: customers,
     isLoading,
@@ -42,75 +60,8 @@ export default function SalesPage() {
     entityName: "Cliente",
   });
 
-  const {
-    data: orders,
-    currentPage: orderPage,
-    setCurrentPage: setOrderPage,
-    isLoading: isLoadingOrder,
-    selectedEntity: selectedOrder,
-    setSelectedEntity: setSelectedOrder,
-    isEditing: isEditingOrder,
-    setIsEditing: setIsEditingOrder,
-    isModalOpen: isModalOpenOrder,
-    setIsModalOpen: setIsModalOpenOrder,
-    setInitialState: setInitialStateOrder,
-    formAction: formActionOrder,
-    isPending: isPendingOrder,
-    handleOnDelete: handleOnDeleteOrder,
-  } = useEntityManager<CustomerOrder>({
-    route: "/api/orders",
-    addAction: addCustomer,
-    updateAction: updateCustomer,
-    deleteAction: deleteCustomer,
-    setComboBoxSelectedOption: () => {},
-    comboBoxSelectedOption: null,
-    entityName: "Order",
-  });
-
-  const addNewCustomer = (
-    state: CustomerActionState,
-    formAction: (formData: FormData) => void | Promise<void>,
-  ) => {
-    return AddOrEditEntityComponent(
-      isEditing ? "Editar Cliente" : "Agregar Cliente",
-      <CustomerForm
-        formAction={formAction}
-        state={state}
-        isPending={isPending}
-        isEditing={isEditing}
-        setIsModalOpen={setIsModalOpen}
-        setIsEditing={setIsEditing}
-      />,
-    );
-  };
-
-  const addNewOrder = (
-    state: OrderActionState,
-    formAction: (formData: FormData) => void | Promise<void>,
-  ) => {
-    return AddOrEditEntityComponent(
-      isEditingOrder ? "Editar Orden" : "Agregar Orden",
-      <OrderForm
-        formAction={formAction}
-        state={state}
-        customersData={customers?.map((c) => ({
-          id: c.id,
-          name: c.name,
-        }))}
-        incomes={[]}
-        productsData={[]}
-        data={[]}
-        isPending={isPendingOrder}
-        isEditing={isEditingOrder}
-        isLoading={isLoadingOrder}
-        setIsModalOpen={setIsModalOpenOrder}
-        setIsEditing={setIsEditingOrder}
-        selectedOption={null}
-        setComboBoxSelectedOption={() => {}}
-        modalChildren={<></>}
-      />,
-    );
-  };
+  const { data: orders, isLoading: isLoadingOrders } =
+    useFetchData<OrderRow>("/api/orders");
 
   return (
     <>
@@ -120,7 +71,6 @@ export default function SalesPage() {
         isLoading={isLoading}
         data={customers ?? []}
         columns={[
-          // { header: "ID", field: "id" },
           { header: "Nombre", field: "name" },
           { header: "Teléfono", field: "phone" },
           { header: "Email", field: "email" },
@@ -138,59 +88,97 @@ export default function SalesPage() {
         onDelete={({ id }) => handleOnDeleteCustomer(Number(id))}
         isModalOpen={isModalOpen}
         setIsModalOpen={setIsModalOpen}
-        modalContent={addNewCustomer(
-          isEditing
-            ? (selectedCustomer as any as CustomerActionState)
-            : ({} as any),
-          formActionCustomer,
+        modalContent={AddOrEditEntityComponent(
+          isEditing ? "Editar Cliente" : "Agregar Cliente",
+          <CustomerForm
+            formAction={formActionCustomer}
+            state={isEditing ? (selectedCustomer as any as CustomerActionState) : ({} as any)}
+            isPending={isPending}
+            isEditing={isEditing}
+            setIsModalOpen={setIsModalOpen}
+            setIsEditing={setIsEditing}
+          />,
         )}
         callBackActionWhenModalOpen={() => {
-          console.log(
-            "reset selected customer and initial state when modal opens",
-          );
           setIsEditing(false);
           setSelectedCustomer(null);
           setInitialState({ name: "" });
         }}
       />
+
       <EntityListSection<OrderRow>
         title="Ventas"
         addButtonText="Agregar nueva venta"
-        isLoading={isLoadingOrder}
+        redirectsOnAdd={true}
+        isLoading={isLoadingOrders}
         data={orders ?? []}
         columns={[
-          { header: "Número Orden", field: "id" },
-          { header: "Cliente ID", field: "customerId" },
-          { header: "Fecha", field: "date" },
-          // { header: "Dirección", field: "address" },
+          { header: "# Orden", field: "id" },
+          { header: "Cliente", field: "customerName" },
+          { header: "Fecha", field: "formattedDate" },
+          { header: "Ingreso ID", field: "incomeId" },
+          {
+            header: "Balance",
+            field: "customerBalance",
+            render: (value) => `Q. ${Number(value ?? 0).toFixed(2)}`,
+          },
+          {
+            header: "Estado",
+            field: "status",
+            render: (value) => {
+              const map: Record<string, { label: string; className: string }> = {
+                draft: { label: "Borrador", className: "text-gray-600 bg-gray-100" },
+                pending: { label: "Pendiente", className: "text-yellow-600 bg-yellow-50" },
+                confirmed: { label: "Confirmada", className: "text-green-700 bg-green-50" },
+                paid: { label: "Pagada", className: "text-blue-700 bg-blue-50" },
+              };
+              const s = map[String(value)] ?? map.draft;
+              return (
+                <span className={`px-2 py-0.5 rounded text-xs font-medium ${s.className}`}>
+                  {s.label}
+                </span>
+              );
+            },
+          },
         ]}
-        currentPage={orderPage}
-        totalItems={orders?.length || 0}
-        pageSize={10}
-        onPageChange={setOrderPage}
-        onEdit={(order) => {
-          setSelectedOrder(order);
-          setIsEditingOrder(true);
-          setIsModalOpenOrder(true);
-        }}
-        onDelete={({ id }) => handleOnDeleteOrder(Number(id))}
-        isModalOpen={isModalOpenOrder}
-        setIsModalOpen={setIsModalOpenOrder}
-        modalContent={addNewOrder(
-          isEditingOrder
-            ? (selectedOrder as any as OrderActionState)
-            : ({} as any),
-          formActionOrder,
-        )}
-        redirectsOnAdd={true}
-        callBackActionWhenModalOpen={() => {
-          console.log(
-            "reset selected order and initial state when modal opens",
+        currentPage={1}
+        totalItems={orders?.length ?? 0}
+        pageSize={50}
+        onPageChange={() => {}}
+        onEdit={(order) => router.push(`/dashboard/ventas/${order.id}`)}
+        onDelete={() => {}}
+        isModalOpen={false}
+        setIsModalOpen={() => {}}
+        modalContent={null}
+        callBackActionWhenModalOpen={() => router.push("/dashboard/ventas/nueva")}
+        hasNestedData={(row) => row.orderDetails?.length > 0}
+        renderNestedContent={(row) => {
+          const orderTotal = row.orderDetails.reduce(
+            (sum, d) => sum + Number(d.quantity) * Number(d.price),
+            0,
           );
-          setIsEditingOrder(false);
-          setSelectedOrder(null);
-          setInitialStateOrder({});
-          router.push("./ventas/nueva");
+          return (
+            <NestedTable
+              title="Detalle de Venta"
+              data={row.orderDetails}
+              columns={[
+                { header: "Producto", field: "productName" },
+                { header: "Cantidad", field: "quantity" },
+                {
+                  header: "Precio",
+                  field: "price",
+                  render: (value) => `Q. ${Number(value).toFixed(2)}`,
+                },
+                {
+                  header: "Subtotal",
+                  field: "price",
+                  render: (value, d) =>
+                    `Q. ${(Number((d as any).quantity) * Number(value)).toFixed(2)}`,
+                },
+              ]}
+              footer={["Total", "", "", `Q. ${orderTotal.toFixed(2)}`]}
+            />
+          );
         }}
       />
     </>

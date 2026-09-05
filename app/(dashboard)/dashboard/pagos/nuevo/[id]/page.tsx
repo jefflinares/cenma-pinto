@@ -1,29 +1,29 @@
 "use client";
 import { useParams, useRouter } from "next/navigation";
-import { useState, useRef, useMemo, useActionState, useEffect } from "react";
-import AddOrEditEntityComponent from "@/components/ui/forms/addOrEditForm";
-import { useEntityManager } from "@/components/hooks/useEntityManager";
-import { IncomeRow } from "../../../proveedores/page";
-import useFetchData from "@/components/hooks/useFetchData";
-import { ProductRow } from "../../../productos/page";
-import ProviderSettlementTable, {
-  IncomeDetailRowExtended,
-} from "@/components/ui/forms/ProviderSettlementTable";
-import ProviderSettlementExpenses from "@/components/ui/forms/ProviderSettlementExpenses";
-import { Expense } from "@/components/ui/forms/ProviderSettlementExpenses";
-import ResumeSummary from "@/components/ui/ResumeSummary";
-import { NewProviderSettlement, ProviderSettlement } from "@/lib/db/schema";
-import { addProviderSettlement } from "../../actions";
-import { ComboBoxWithModal, Entity } from "@/components/ui/comboBox";
+import { useEffect, useState } from "react";
 import ProviderSettlementPage from "@/components/ui/forms/ProviderSettlementPage";
-
-type Provider = NewProviderSettlement;
 
 export default function ProviderSettlements() {
   const params = useParams();
+  const router = useRouter();
   const incomeId = params.id as string;
+  const [ready, setReady] = useState(incomeId === "0");
 
-  return (
-    <ProviderSettlementPage incomeId={incomeId} mode="create" />
-  );
+  useEffect(() => {
+    if (incomeId === "0") return;
+    fetch(`/api/settlements?incomeId=${incomeId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        const settlement = Array.isArray(data) ? data[0] : null;
+        if (settlement?.id) {
+          router.replace(`/dashboard/pagos/${settlement.id}`);
+        } else {
+          setReady(true);
+        }
+      });
+  }, [incomeId]);
+
+  if (!ready) return <div className="p-8">Cargando...</div>;
+
+  return <ProviderSettlementPage incomeId={incomeId} mode="create" />;
 }

@@ -12,6 +12,7 @@ interface NestedTableProps<T> {
   data: T[];
   className?: string;
   emptyMessage?: string;
+  footer?: (string | React.ReactNode)[];
 }
 
 export default function NestedTable<T>({
@@ -20,6 +21,7 @@ export default function NestedTable<T>({
   data,
   className = "",
   emptyMessage = "No hay datos disponibles",
+  footer,
 }: NestedTableProps<T>) {
   return (
     <div className={`space-y-2 ${className}`}>
@@ -60,6 +62,15 @@ export default function NestedTable<T>({
                 >
                   {emptyMessage}
                 </td>
+              </tr>
+            )}
+            {footer && data.length > 0 && (
+              <tr className="bg-gray-50 font-semibold">
+                {footer.map((cell, idx) => (
+                  <td key={idx} className="px-3 py-2 border text-gray-900">
+                    {cell}
+                  </td>
+                ))}
               </tr>
             )}
           </tbody>

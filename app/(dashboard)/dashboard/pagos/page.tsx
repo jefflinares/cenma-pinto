@@ -171,7 +171,7 @@ export default function PagosPage() {
                 }
               >
                 <Receipt size={20} />
-                Generar Recibo
+                Imprimir Recibo
               </button>
             ),
             renderCondition: (payment: SettlementRow) => payment.status === "confirmed",
@@ -193,6 +193,7 @@ export default function PagosPage() {
         totalItems={settlements?.length || 0}
         pageSize={10}
         onPageChange={(page) => setCurrentPage(page)}
+        onRowClick={(payment) => router.push(`/dashboard/pagos/${payment.id}`)}
         onEdit={(payment) => { router.push(`/dashboard/pagos/${payment.id}`) }} // Handle edit if needed
         onDelete={() => {}} // Handle delete if needed
         isModalOpen={false}

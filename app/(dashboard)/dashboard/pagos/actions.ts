@@ -96,14 +96,14 @@ const providerSettlementSchema = z
           if (typeof val === "object" && val !== null) {
             const e = val as any;
             return {
-              description: e.description ?? e.concept ?? e.concepto ?? "",
+              concept: e.concept ?? e.description ?? e.concepto ?? "",
               amount: e.amount ?? e.monto ?? 0,
             };
           }
           return val;
         },
         z.object({
-          description: z.string().min(1),
+          concept: z.string().min(1),
           amount: z.union([z.string().min(1).transform(Number), z.number()]),
         }),
       ),
@@ -116,6 +116,19 @@ export const addProviderSettlement = validatedActionWithUser(
   async (data, _, user) => {
     const { settlement, settlementDetails, settlementExpenses } = data;
     try {
+      const [existing] = await db
+        .select({ id: providerSettlements.id })
+        .from(providerSettlements)
+        .where(eq(providerSettlements.incomeId, Number(settlement.incomeId)))
+        .limit(1);
+
+      if (existing) {
+        return {
+          error: `Ya existe un recibo de pago para este ingreso.`,
+          existingSettlementId: existing.id,
+        };
+      }
+
       const result = await db.transaction(async (tx) => {
         const [NewProviderSettlement] = await tx
           .insert(providerSettlements)
@@ -173,7 +186,7 @@ export const addProviderSettlement = validatedActionWithUser(
         // update the income status to settled
         await tx
           .update(income)
-          .set({ status: "settled" })
+          .set({ status: "settled", providerSettlementId: NewProviderSettlement.id })
           .where(eq(income.id, Number(settlement.incomeId)));
 
         return NewProviderSettlement;

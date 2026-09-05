@@ -13,6 +13,7 @@ export type EntityWithId = { id?: string | number };
 
 type EntityListSectionProps<T extends EntityWithId> = DataTableProps<T> & {
   title: string;
+  subtitle?: string;
   actions?: ActionIcon[];
   addButtonText: string;
   isModalOpen: boolean;
@@ -26,6 +27,7 @@ type EntityListSectionProps<T extends EntityWithId> = DataTableProps<T> & {
 
 export function EntityListSection<T extends EntityWithId>({
   title,
+  subtitle,
   addButtonText,
   isLoading,
   data,
@@ -37,6 +39,7 @@ export function EntityListSection<T extends EntityWithId>({
   onPageChange,
   onEdit,
   onDelete,
+  onRowClick,
   isModalOpen,
   setIsModalOpen,
   callBackActionWhenModalOpen,
@@ -54,7 +57,12 @@ export function EntityListSection<T extends EntityWithId>({
       </h1>
       <Card>
         <CardHeader>
-          <CardTitle>Lista de {title}</CardTitle>
+          <div className="flex flex-col gap-2">
+            <CardTitle>Lista de {title}</CardTitle>
+            {subtitle && (
+              <p className="text-xs text-400">{subtitle}</p>
+            )}
+          </div>
           <CardAction>
             <div className="flex flex-col items-end gap-1">
               <Button
@@ -90,6 +98,7 @@ export function EntityListSection<T extends EntityWithId>({
             onPageChange={onPageChange}
             onEdit={onEdit}
             onDelete={onDelete}
+            onRowClick={onRowClick}
             expandable={!!renderNestedContent}
             hasNestedData={hasNestedData}
             renderNestedContent={renderNestedContent}

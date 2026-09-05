@@ -6,6 +6,7 @@ import {
   ActivityType,
   customerOrders,
   customerOrderDetails,
+  customerAccounts,
   incomeDetails,
   products as productsTable,
 } from "@/lib/db/schema";
@@ -13,9 +14,9 @@ import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 
 const productItemSchema = z.object({
-  id: z.string().min(1),
-  salePrice: z.string(),
-  amount: z.string().min(1),
+  id: z.union([z.string().min(1), z.number().transform(String)]),
+  salePrice: z.union([z.string(), z.number().transform(String)]),
+  amount: z.union([z.string().min(1), z.number().transform(String)]),
 });
 
 const addOrderSchema = z.object({
@@ -97,6 +98,16 @@ export const addOrder = validatedActionWithUser(
             .set({ remainingQuantity: remaining - quantity })
             .where(eq(incomeDetails.id, detail.id));
         }
+
+        // Update customer account balance with order total
+        const orderTotal = items.reduce(
+          (sum, item) => sum + Number(item.amount) * Number(item.salePrice || 0),
+          0,
+        );
+        await tx
+          .update(customerAccounts)
+          .set({ balance: sql`${customerAccounts.balance}::numeric + ${orderTotal}` })
+          .where(eq(customerAccounts.customerId, customerId));
       });
 
       await logActivity(1, user.id, ActivityType.CREATE_ORDER);
@@ -144,6 +155,12 @@ export const updateOrder = validatedActionWithUser(
               isNull(customerOrderDetails.deletedAt),
             ),
           );
+
+        // Calculate old order total to reverse from customer account
+        const oldOrderTotal = existingDetails.reduce(
+          (sum, d) => sum + Number(d.quantity) * Number(d.price || 0),
+          0,
+        );
 
         // 3. Restore remainingQuantity for each existing detail
         for (const old of existingDetails) {
@@ -235,6 +252,32 @@ export const updateOrder = validatedActionWithUser(
             .set({ remainingQuantity: remaining - quantity })
             .where(eq(incomeDetails.id, detail.id));
         }
+
+        // Update customer account balances
+        const newOrderTotal = items.reduce(
+          (sum, item) => sum + Number(item.amount) * Number(item.salePrice || 0),
+          0,
+        );
+        const oldCustomerId = existingOrder.customerId;
+
+        if (oldCustomerId === customerId) {
+          // Same customer: apply net difference
+          const diff = newOrderTotal - oldOrderTotal;
+          await tx
+            .update(customerAccounts)
+            .set({ balance: sql`${customerAccounts.balance}::numeric + ${diff}` })
+            .where(eq(customerAccounts.customerId, customerId));
+        } else {
+          // Customer changed: reverse old, apply new
+          await tx
+            .update(customerAccounts)
+            .set({ balance: sql`${customerAccounts.balance}::numeric - ${oldOrderTotal}` })
+            .where(eq(customerAccounts.customerId, oldCustomerId));
+          await tx
+            .update(customerAccounts)
+            .set({ balance: sql`${customerAccounts.balance}::numeric + ${newOrderTotal}` })
+            .where(eq(customerAccounts.customerId, customerId));
+        }
       });
 
       await logActivity(1, user.id, ActivityType.UPDATE_ORDER);
@@ -244,6 +287,29 @@ export const updateOrder = validatedActionWithUser(
       return { error: error?.message ?? "Error al actualizar la venta. Por favor, inténtelo de nuevo." };
     }
   }
+);
+
+const confirmOrderSchema = z.object({
+  id: z.string().min(1).transform(Number),
+});
+
+export const confirmOrder = validatedActionWithUser(
+  confirmOrderSchema,
+  async (data, _, user): Promise<ActionState> => {
+    const { id: orderId } = data;
+    try {
+      await db
+        .update(customerOrders)
+        .set({ status: "confirmed", updatedAt: sql`now()` })
+        .where(and(eq(customerOrders.id, orderId), isNull(customerOrders.deletedAt)));
+
+      await logActivity(1, user.id, ActivityType.UPDATE_ORDER);
+      return { success: "Orden confirmada correctamente" };
+    } catch (error: any) {
+      console.error("Error confirming order:", error);
+      return { error: error?.message ?? "Error al confirmar la orden." };
+    }
+  },
 );
 
 const deleteOrderSchema = z.object({

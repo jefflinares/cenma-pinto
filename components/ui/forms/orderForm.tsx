@@ -33,19 +33,24 @@ type OrderProps = ComboBoxWithModalProps & {
   isEditing: boolean;
   setIsModalOpen: (isOpen: boolean) => void;
   setIsEditing: (isEditing: boolean) => void;
+  preserveValues?: boolean;
+  readOnly?: boolean;
 };
 
 const OrderForm = ({
   isLoading,
   selectedOption,
   setComboBoxSelectedOption,
+  preserveValues = false,
+  readOnly = false,
   ...props
 }: OrderProps) => {
   console.log("🚀 ~ OrderForm ~ selectedOption:", selectedOption);
-  const [selectedIncomeId, setSelectedIncomeId] = React.useState<number | null>(null);
-  const [updatedOrderRows, setUpdatedOrderRows] = React.useState<
-    IncomeDetailRow[]
-  >([]);
+  const [selectedIncomeId, setSelectedIncomeId] = React.useState<number | null>(
+    props.incomes?.length === 1 ? (props.incomes[0].id ?? null) : null
+  );
+  const [updatedOrderRows, setUpdatedOrderRows] = React.useState<IncomeDetailRow[]>([]);
+  const [hasTableErrors, setHasTableErrors] = React.useState(false);
   console.log("🚀 ~ OrderForm ~ updatedOrderRows:", updatedOrderRows);
 
   const formRef = React.useRef<HTMLFormElement | null>(null);
@@ -81,6 +86,10 @@ const OrderForm = ({
       <Label htmlFor="customerId">{"Seleccione un cliente"}</Label>
       {isLoading ? (
         <div>Cargando...</div>
+      ) : readOnly ? (
+        <div className="rounded-md border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-500 cursor-not-allowed">
+          {selectedOption?.name ?? "—"}
+        </div>
       ) : (
         <>
           <ComboBoxWithModal
@@ -106,6 +115,9 @@ const OrderForm = ({
             </Label>
             <OrderItemsTable
               rows={income.incomeDetails as IncomeDetailRow[]}
+              onValidationChange={setHasTableErrors}
+              preserveValues={preserveValues}
+              readOnly={readOnly}
               onChange={(updatedRow) => {
                 setSelectedIncomeId(income.id ?? null);
                 setUpdatedOrderRows((prevRows) => {
@@ -124,23 +136,25 @@ const OrderForm = ({
           </div>
         );
       })}
-      <button
-        type="submit"
-        aria-label={props.isEditing ? "Actualizar orden" : "Registrar orden"}
-        disabled={props.isPending}
-        className={`fixed right-4 z-50 inline-flex items-center gap-2 rounded-full px-4 py-3 shadow-lg text-white ${
-          props.isPending
-            ? "bg-gray-400 cursor-not-allowed"
-            : "bg-orange-500 hover:bg-orange-600"
-        }`}
-        style={{ bottom: "calc(1.5rem + env(safe-area-inset-bottom))" }}
-      >
-        {props.isPending
-          ? "Guardando..."
-          : props.isEditing
-          ? "Actualizar Venta"
-          : "Registrar Venta"}
-      </button>
+      {!readOnly && (
+        <button
+          type="submit"
+          aria-label={props.isEditing ? "Actualizar orden" : "Registrar orden"}
+          disabled={props.isPending || hasTableErrors}
+          className={`fixed right-4 z-50 inline-flex items-center gap-2 rounded-full px-4 py-3 shadow-lg text-white ${
+            props.isPending
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-orange-500 hover:bg-orange-600"
+          }`}
+          style={{ bottom: "calc(1.5rem + env(safe-area-inset-bottom))" }}
+        >
+          {props.isPending
+            ? "Guardando..."
+            : props.isEditing
+            ? "Actualizar Venta"
+            : "Registrar Venta"}
+        </button>
+      )}
     </form>
   );
 };

@@ -27,6 +27,7 @@ export interface DataTableProps<T> {
   onPageChange: (page: number) => void;
   onEdit: (row: T) => void;
   onDelete: (row: T) => void;
+  onRowClick?: (row: T) => void;
   // New props for nested/expandable rows
   expandable?: boolean;
   renderNestedContent?: (row: T) => React.ReactNode;
@@ -44,6 +45,7 @@ export default function DataTable<T extends EntityWithId>({
   onPageChange,
   onEdit,
   onDelete,
+  onRowClick,
   expandable = false,
   renderNestedContent,
   hasNestedData,
@@ -103,7 +105,6 @@ export default function DataTable<T extends EntityWithId>({
   const isRowExpanded = (rowId: string | number) => expandedRows.has(rowId);
 
   const editAction = actions.find((action) => action.action === "edit");
-  console.log("🚀 ~ DataTable ~ editAction:", editAction);
   const deleteAction = actions.find((action) => action.action === "delete");
 
   const otherActions = actions.filter(
@@ -170,7 +171,13 @@ export default function DataTable<T extends EntityWithId>({
             {paginatedData.length > 0 && !isLoading ? (
               paginatedData.map((row) => (
                 <React.Fragment key={row.id}>
-                  <tr className="border-b hover:bg-gray-50">
+                  <tr
+                    className={`border-b hover:bg-gray-50 ${onRowClick && !(hasNestedData?.(row)) ? "cursor-pointer" : ""}`}
+                    onClick={() => {
+                      if (hasNestedData?.(row)) return;
+                      onRowClick?.(row);
+                    }}
+                  >
                     {expandable && (
                       <td className="px-4 py-2">
                         {hasNestedData && hasNestedData(row) ? (

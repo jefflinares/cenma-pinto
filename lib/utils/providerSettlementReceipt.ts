@@ -3,6 +3,7 @@ import { generateProviderSettlementReceiptPdf } from "@/lib/payments/providerSet
 type ReceiptSettlementInput = {
   id?: string | number;
   providerName?: string;
+  incomeDate?: string;
   netAmount?: string | number;
   settlementDetails?: Array<{
     productName?: string;
@@ -14,6 +15,15 @@ type ReceiptSettlementInput = {
     concept?: string;
     amount?: string | number;
   }>;
+  payments?: Array<{
+    date?: string | Date;
+    formattedDate?: string;
+    amount?: string | number;
+    formattedAmount?: string;
+    paymentType?: string;
+    formattedPaymentType?: string;
+    reference?: string;
+  }>;
 };
 
 export function downloadProviderSettlementReceipt(
@@ -22,9 +32,11 @@ export function downloadProviderSettlementReceipt(
   generateProviderSettlementReceiptPdf({
     id: settlement.id,
     providerName: settlement.providerName,
+    incomeDate: settlement.incomeDate,
     receiptDate: new Date().toLocaleDateString("es-GT"),
     netAmount: settlement.netAmount,
     settlementDetails: settlement.settlementDetails,
     settlementExpenses: settlement.settlementExpenses,
+    payments: settlement.payments,
   });
 }

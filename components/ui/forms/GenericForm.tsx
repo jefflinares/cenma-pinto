@@ -68,8 +68,6 @@ const GenericForm = ({
   onAddCallBackAction,
   setComboBoxSelectedOption,
 }: GenericFormProps) => {
-  console.log("🚀 ~ GenericForm ~ state:", state);
-
   // Helper function to get carousel initial state
   const getCarouselInitialState = (field: GenericFormField) => {
     if (field.type === "carousel") {
@@ -122,7 +120,6 @@ const GenericForm = ({
   };
 
   const renderComboBoxField = (field: GenericFormField) => {
-    console.log("🚀 ~ renderComboBoxField ~ selectedOption:", selectedOption);
     const fallbackSelectedOption =
       selectedOption ??
       (field.data || []).find((option) => option.id === field.defaultValue) ??

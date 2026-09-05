@@ -240,11 +240,45 @@ export default function SuppliersPage() {
         callBackActionWhenModalOpen={() => {
           router.push("/dashboard/ingresos/0");
         }}
+        onRowClick={(income) => router.push(`/dashboard/ingresos/${income.id}`)}
         data={incomes ?? []}
         columns={[
           { header: "Fecha", field: "formattedDate" },
           { header: "Proveedor", field: "providerName" },
-          // { header: "Dirección", field: "address" },
+          {
+            header: "Resumen",
+            field: "incomeDetails",
+            render: (value) => {
+              const details = (value as IncomeDetailRow[]) ?? [];
+              if (details.length === 0) return <span className="text-gray-400 text-xs">Sin productos</span>;
+              return (
+                <span className="text-xs text-gray-600">
+                  {details.map((d) => `${d.quantity} ${d.productName}`).join(", ")}
+                </span>
+              );
+            },
+          },
+          {
+            header: "Total",
+            field: "settlementNetAmount",
+            render: (value) =>
+              value != null
+                ? `Q. ${Number(value).toFixed(2)}`
+                : <span className="text-gray-400 text-xs">—</span>,
+          },
+          {
+            header: "Saldo Pendiente",
+            field: "settlementNetAmount",
+            render: (value, row) => {
+              if (value == null) return <span className="text-gray-400 text-xs">—</span>;
+              const pending = Math.max(Number(value) - Number((row as IncomeRow).settlementTotalPaid ?? 0), 0);
+              return (
+                <span className={pending > 0 ? "text-red-600 font-medium text-xs" : "text-green-600 font-medium text-xs"}>
+                  Q. {pending.toFixed(2)}
+                </span>
+              );
+            },
+          },
         ]}
         actions={[
           {
@@ -277,47 +311,26 @@ export default function SuppliersPage() {
             component: (income: IncomeRow) => (
               <button
                 className="text-blue-500 hover:text-blue-700 flex items-center gap-1"
-                onClick={() => {
-                  router.push(`/dashboard/pagos/nuevo/${income.id}`);
-                  console.log("Generar recibo para el ingreso:", income);
-                }}
-              >
-                <ReceiptText size={18} />
-                <span className="text-sm">Generar Recibo</span>
-              </button>
-            ),
-            renderCondition: (income: Income) => income.status === "confirmed"
-          },
-             {
-            action: "sale register",
-            component: (income: IncomeRow) => (
-              <button
-                className="text-green-500 hover:text-green-700 flex items-center gap-1"
-                onClick={() => {
-                  router.push(`/dashboard/ingresos/${income.id}`);
-                }}
-              >
-                <BadgeDollarSign size={18} />
-                <span className="text-sm">Registrar Venta</span>
-              </button>
-            ),
-            renderCondition: (income: Income) => income.status === "confirmed"
-          },
-          {
-            action: "view receipt",
-            component: (income: IncomeRow) => (
-              <button
-                className="text-blue-500 hover:text-blue-700 flex items-center gap-1"
-                onClick={() => {
-                  router.push(`/dashboard/pagos/${income.providerSettlementId}`);
-                  console.log("Generar recibo para el ingreso:", income);
-                }}
+                onClick={() => router.push(`/dashboard/pagos/nuevo/${income.id}`)}
               >
                 <ReceiptText size={18} />
                 <span className="text-sm">Ver Recibo</span>
               </button>
             ),
-            renderCondition: (income: Income) => income.status === "settled"
+            renderCondition: (income: Income) => income.status === "confirmed" || income.status === "settled",
+          },
+          {
+            action: "sale register",
+            component: (income: IncomeRow) => (
+              <button
+                className="text-green-500 hover:text-green-700 flex items-center gap-1"
+                onClick={() => router.push(`/dashboard/ingresos/${income.id}`)}
+              >
+                <BadgeDollarSign size={18} />
+                <span className="text-sm">Registrar Venta</span>
+              </button>
+            ),
+            renderCondition: (income: Income) => income.status === "confirmed" || income.status === "settled",
           },
         ]}
         currentPage={currentPageIncome}

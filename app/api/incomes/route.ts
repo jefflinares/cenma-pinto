@@ -8,12 +8,14 @@ export async function GET(request: Request) {
   const to = params.get("to");
   const limit = params.get("limit");
   const withAvailableStock = params.get("withAvailableStock");
+  const forSettlement = params.get("forSettlement");
   const incomes = await getIncomes({
     id: incomeId ? Number(incomeId) : undefined,
     from: from || undefined,
     to: to || undefined,
     limit: limit ? Number(limit) : undefined,
     withAvailableStock: withAvailableStock === "true",
+    forSettlement: forSettlement === "true",
   });
   return Response.json(incomes);
 }

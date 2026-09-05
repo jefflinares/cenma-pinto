@@ -14,6 +14,7 @@ import { validateSession } from "./util";
 
 type SettlementParams = {
   settlementId?: number | string;
+  incomeId?: number | string;
   from?: string;
   to?: string;
   limit?: number | string;
@@ -24,7 +25,7 @@ export async function getSettlements(params?: SettlementParams) {
   if (!sessionData) {
     throw new Error("Invalid session");
   }
-  const { settlementId } = params || {};
+  const { settlementId, incomeId } = params || {};
 
   let settlements = await db
     .select({
@@ -48,6 +49,7 @@ export async function getSettlements(params?: SettlementParams) {
       and(
         isNull(income.deletedAt),
         settlementId ? eq(providerSettlements.id, Number(settlementId)) : undefined,
+        incomeId ? eq(providerSettlements.incomeId, Number(incomeId)) : undefined,
       ),
     ) // Filter out soft-deleted products
     .orderBy(desc(providerSettlements.createdAt)); // Order by creation date
@@ -58,9 +60,10 @@ export async function getSettlements(params?: SettlementParams) {
     settlements.map(async (settlement) => {
       return {
         ...settlement,
-        formattedDate: new Date(settlement.incomeDate)
-          .toLocaleDateString("en-GB")
-          .toString(),
+        formattedDate: (() => {
+          const [year, month, day] = settlement.incomeDate.split("-");
+          return `${day}/${month}/${year}`;
+        })(),
         settlementDetails: await db
           .select({
             id: providerSettlementDetails.id,

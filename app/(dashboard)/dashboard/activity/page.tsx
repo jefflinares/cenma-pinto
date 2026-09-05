@@ -55,6 +55,9 @@ const iconMap: Record<ActivityType, LucideIcon> = {
   [ActivityType.CREATE_PAYMENT]: Settings,
   [ActivityType.UPDATE_PAYMENT]: Settings,
   [ActivityType.DELETE_PAYMENT]: Settings,
+  [ActivityType.CREATE_CUSTOMER_PAYMENT]: Settings,
+  [ActivityType.UPDATE_CUSTOMER_PAYMENT]: Settings,
+  [ActivityType.DELETE_CUSTOMER_PAYMENT]: Settings,
   [ActivityType.CREATE_CASH_MOVEMENT]: Settings,
   [ActivityType.UPDATE_CASH_MOVEMENT]: Settings,
   [ActivityType.DELETE_CASH_MOVEMENT]: Settings,
@@ -192,6 +195,12 @@ function formatAction(action: ActivityType): string {
       return 'You updated a payment';
     case ActivityType.DELETE_PAYMENT:
       return 'You deleted a payment';
+    case ActivityType.CREATE_CUSTOMER_PAYMENT:
+      return 'You registered a customer payment';
+    case ActivityType.UPDATE_CUSTOMER_PAYMENT:
+      return 'You updated a customer payment';
+    case ActivityType.DELETE_CUSTOMER_PAYMENT:
+      return 'You deleted a customer payment';
     case ActivityType.CREATE_CASH_MOVEMENT:
       return 'You created a cash movement';
     case ActivityType.UPDATE_CASH_MOVEMENT:

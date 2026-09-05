@@ -4,14 +4,19 @@ import { useEffect, useRef, useState } from "react";
 type Props = {
   rows: IncomeDetailRow[];
   onChange: (row: IncomeDetailRow) => void;
+  onValidationChange?: (hasErrors: boolean) => void;
+  preserveValues?: boolean;
+  readOnly?: boolean;
 };
 
-export default function OrderItemsTable({ rows, onChange }: Props) {
-  const [items, setItems] = useState<IncomeDetailRow[]>(rows);
-  // console.log("🚀 ~ OrderItemsTable ~ items:", items);
+export default function OrderItemsTable({ rows, onChange, onValidationChange, preserveValues = false, readOnly = false }: Props) {
+  const [items, setItems] = useState<IncomeDetailRow[]>(() =>
+    preserveValues ? rows : rows.map((r) => ({ ...r, quantity: 0, unitPrice: 0 }))
+  );
 
   useEffect(() => {
-    setItems(rows);
+    setItems(preserveValues ? rows : rows.map((r) => ({ ...r, quantity: 0, unitPrice: 0 })));
+    setErrors({});
   }, [rows]);
 
   const [errors, setErrors] = useState<
@@ -23,54 +28,45 @@ export default function OrderItemsTable({ rows, onChange }: Props) {
     field: keyof IncomeDetailRow,
     value: number | undefined
   ) => {
+    let nextErrors = { ...errors };
     const updated = items.map((item) => {
       if (item.id !== id) return item;
-      // if updating quantity, validate against stock
       let newItem = { ...item };
+
       if (field === "quantity") {
         const qty = value ?? 0;
         if (qty > item.stock) {
-          // set error and clamp quantity to stock (optional)
-          setErrors((s) => ({
-            ...s,
-            [id]: {
-              field: "quantity",
-              message: `Cantidad máxima: ${item.stock}`,
-            },
-          }));
+          nextErrors = { ...nextErrors, [id]: { field: "quantity", message: `Cantidad máxima: ${item.stock}` } };
           newItem = { ...item, [field]: +String(item.stock) };
         } else if (qty < 0) {
-          setErrors((s) => ({
-            ...s,
-            [id]: {
-              field: "quantity",
-              message: "Cantidad no puede ser negativa",
-            },
-          }));
-          newItem = { ...item, [field]: +String(0) };
-        } else {
-          setErrors((s) => ({ ...s, [id]: null }));
-          newItem = { ...item, [field]: +String(value ?? 0) };
-        }
-      } else if (field === "unitPrice") {
-        if ((value ?? 0) < 0) {
-          setErrors((s) => ({
-            ...s,
-            [id]: {
-              field: "unitPrice",
-              message: "Precio no puede ser negativo",
-            },
-          }));
+          nextErrors = { ...nextErrors, [id]: { field: "quantity", message: "Cantidad no puede ser negativa" } };
+          newItem = { ...item, [field]: 0 };
+        } else if (qty === 0 && (item.unitPrice ?? 0) > 0) {
+          nextErrors = { ...nextErrors, [id]: { field: "quantity", message: "Debe ingresar una cantidad si el precio es mayor a 0" } };
           newItem = { ...item, [field]: 0 };
         } else {
-          setErrors((s) => ({ ...s, [id]: null }));
-          newItem = { ...item, [field]: value };
+          nextErrors = { ...nextErrors, [id]: null };
+          newItem = { ...item, [field]: qty };
+        }
+      } else if (field === "unitPrice") {
+        const price = value ?? 0;
+        if (price < 0) {
+          nextErrors = { ...nextErrors, [id]: { field: "unitPrice", message: "Precio no puede ser negativo" } };
+          newItem = { ...item, [field]: 0 };
+        } else if (price > 0 && +item.quantity === 0) {
+          nextErrors = { ...nextErrors, [id]: { field: "quantity", message: "Debe ingresar una cantidad si el precio es mayor a 0" } };
+          newItem = { ...item, [field]: price };
+        } else {
+          nextErrors = { ...nextErrors, [id]: null };
+          newItem = { ...item, [field]: price };
         }
       }
       onChange(newItem);
       return newItem;
     });
     setItems(updated);
+    setErrors(nextErrors);
+    onValidationChange?.(Object.values(nextErrors).some((e) => e !== null));
   };
   const total = items.reduce(
     (sum, item) => sum + +item.quantity * (item.unitPrice ?? 0),
@@ -103,12 +99,16 @@ export default function OrderItemsTable({ rows, onChange }: Props) {
                   type="number"
                   min={0}
                   max={item.stock}
-                  value={Math.floor(Number(item.quantity ?? 0))}
+                  value={+item.quantity === 0 ? "" : Math.floor(Number(item.quantity))}
                   step={1}
                   pattern="\d*"
                   inputMode="numeric"
+                  placeholder="0"
+                  disabled={readOnly}
                   className={`w-14 sm:w-20 rounded-md border px-2 py-1 text-center focus:ring ${
-                    errors[item.id] && errors[item.id]?.field === "quantity"
+                    readOnly
+                      ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                      : errors[item.id] && errors[item.id]?.field === "quantity"
                       ? "border-red-500 focus:ring-red-200"
                       : "focus:ring-blue-200"
                   }`}
@@ -116,11 +116,11 @@ export default function OrderItemsTable({ rows, onChange }: Props) {
                     updateItem(
                       item.id,
                       "quantity",
-                      e.target.value === "" ? undefined : Number(e.target.value)
+                      e.target.value === "" ? 0 : Number(e.target.value)
                     )
                   }
                 />
-                {errors[item.id] && errors[item.id]?.field === "quantity" ? (
+                {!readOnly && errors[item.id] && errors[item.id]?.field === "quantity" ? (
                   <p className="mt-1 text-xs text-red-600">
                     {errors[item.id]?.message}
                   </p>
@@ -131,21 +131,25 @@ export default function OrderItemsTable({ rows, onChange }: Props) {
                   type="number"
                   min={0}
                   step={0.01}
-                  value={item.unitPrice ?? 0}
+                  value={(item.unitPrice ?? 0) === 0 ? "" : item.unitPrice}
+                  placeholder="0.00"
+                  disabled={readOnly}
                   onChange={(e) =>
                     updateItem(
                       item.id,
                       "unitPrice",
-                      e.target.value === "" ? undefined : Number(e.target.value)
+                      e.target.value === "" ? 0 : Number(e.target.value)
                     )
                   }
                   className={`w-20 sm:w-24 rounded-md border px-2 py-1 text-center focus:ring ${
-                    errors[item.id] && errors[item.id]?.field === "unitPrice"
+                    readOnly
+                      ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                      : errors[item.id] && errors[item.id]?.field === "unitPrice"
                       ? "border-red-500 focus:ring-red-200"
                       : "focus:ring-blue-200"
                   }`}
                 />
-                {errors[item.id] && errors[item.id]?.field === "unitPrice" ? (
+                {!readOnly && errors[item.id] && errors[item.id]?.field === "unitPrice" ? (
                   <p className="mt-1 text-xs text-red-600">
                     {errors[item.id]?.message}
                   </p>

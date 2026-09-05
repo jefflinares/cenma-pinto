@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { use, useState, Suspense } from 'react';
+import { use, useState, useEffect, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { CircleIcon, Home, LogOut } from 'lucide-react';
 import {
@@ -19,14 +19,21 @@ import useSWR, { mutate } from 'swr';
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 function UserMenu() {
+  const [mounted, setMounted] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { data: user } = useSWR<User>('/api/user', fetcher);
   const router = useRouter();
 
+  useEffect(() => setMounted(true), []);
+
   async function handleSignOut() {
     await signOut();
     mutate('/api/user');
-    router.push('/');
+    router.push('/sign-in');
+  }
+
+  if (!mounted) {
+    return <div className="h-9 w-9" />;
   }
 
   if (!user) {
@@ -51,8 +58,7 @@ function UserMenu() {
         <Avatar className="cursor-pointer size-9">
           <AvatarImage alt={user.name || ''} />
           <AvatarFallback>
-            {user.email
-              .split(' ')
+            {user?.email?.split(' ')
               .map((n) => n[0])
               .join('')}
           </AvatarFallback>

@@ -18,13 +18,17 @@ import {
   addProviderPayment,
   deleteProviderPayment,
   updateProviderPayment,
+  updateProviderSettlementStatus,
 } from "@/app/(dashboard)/dashboard/pagos/actions";
-import { Receipt } from "lucide-react";
+import { ArrowLeft, CheckCircle, Receipt } from "lucide-react";
 import { downloadProviderSettlementReceipt } from "@/lib/utils/providerSettlementReceipt";
+import { useToast } from "@/components/ui/toast";
+import { Modal } from "@/components/ui/modal";
 
 type ProviderSettlementPageProps = {
   incomeId: string;
   mode: "create" | "edit";
+  backHref?: string;
 };
 
 export type ProviderPaymentRow = {
@@ -42,9 +46,13 @@ export type ProviderPaymentRow = {
 const ProviderSettlementPage = ({
   incomeId,
   mode,
+  backHref,
 }: ProviderSettlementPageProps) => {
   const [comboBoxSelectedOption, setComboBoxSelectedOption] =
     useState<Entity | null>(null);
+  const [isConfirmPending, setIsConfirmPending] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const { addToast } = useToast();
 
   const {
     isLoading,
@@ -63,6 +71,7 @@ const ProviderSettlementPage = ({
     errorRef,
     handleSubmit,
     router,
+    refetch,
   } = useProviderSettlement({
     mode,
     initialId: incomeId,
@@ -137,6 +146,27 @@ const ProviderSettlementPage = ({
   const formattedRemainingQuote = formatCurrency(remainingQuote);
 
   const isIncomeConfirmed = selectedIncome?.status === "confirmed";
+  const isDraft = selectedIncome?.status === "draft";
+  const isSettlementConfirmed = mode === "edit" && isIncomeConfirmed;
+
+  const handleConfirm = async () => {
+    if (!settlementId) return;
+    setIsConfirmPending(true);
+    try {
+      const fd = new FormData();
+      fd.append("id", String(settlementId));
+      fd.append("status", "confirmed");
+      const result = await updateProviderSettlementStatus({}, fd);
+      if ((result as any)?.error) {
+        addToast((result as any).error, "error", 4000);
+      } else {
+        addToast("Recibo confirmado correctamente.", "success");
+        await refetch();
+      }
+    } finally {
+      setIsConfirmPending(false);
+    }
+  };
 
   const addPaymentComponent = (state: PaymentActionState) =>
     AddOrEditEntityComponent(
@@ -160,15 +190,79 @@ const ProviderSettlementPage = ({
 
   return (
     <div className="flex-1 p-4 lg:p-8 max-w-none w-full">
-      <h1 className="text-lg lg:text-2xl font-medium text-gray-900 mb-6">
-        {mode === "create"
-          ? "Crear nuevo Recibo de Pago"
-          : mode === "edit" && !isIncomeConfirmed
-            ? "Editar Recibo de Pago"
+      {isConfirmModalOpen && (
+        <Modal
+          title="¿Confirmar recibo de pago?"
+          setIsModalOpen={setIsConfirmModalOpen}
+          onConfirmationText="Confirmar Recibo"
+          onCancelText="Cancelar"
+          onCancelAction={() => setIsConfirmModalOpen(false)}
+          onConfirmAction={async () => {
+            setIsConfirmModalOpen(false);
+            await handleConfirm();
+          }}
+        >
+          Esta acción no se puede revertir.
+        </Modal>
+      )}
+      <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
+        <h1 className="text-lg lg:text-2xl font-medium text-gray-900">
+          {mode === "create"
+            ? "Crear nuevo Recibo de Pago"
             : isIncomeConfirmed
-              ? "Generar Recibo de Pago"
-              : "Ver Recibo de Pago"}
-      </h1>
+              ? "Ver Recibo de Pago"
+              : "Editar Recibo de Pago"}
+        </h1>
+        <div className="flex items-center gap-2 flex-wrap">
+          {mode === "edit" && isDraft && settlementId && (
+            <button
+              type="button"
+              disabled={isConfirmPending}
+              onClick={() => setIsConfirmModalOpen(true)}
+              className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm"
+            >
+              <CheckCircle size={16} />
+              {isConfirmPending ? "Confirmando..." : "Confirmar Recibo"}
+            </button>
+          )}
+          <div className="relative group">
+            <button
+              type="button"
+              disabled={!isSettlementConfirmed}
+              onClick={() =>
+                downloadProviderSettlementReceipt({
+                  id: selectedIncome?.id,
+                  providerName: selectedIncome?.providerName,
+                  netAmount: (selectedIncome as any)?.netAmount,
+                  settlementDetails: (selectedIncome as any)?.settlementDetails,
+                  settlementExpenses: (selectedIncome as any)?.settlementExpenses,
+                  payments: formattedPayments,
+                })
+              }
+              className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm"
+            >
+              <Receipt size={16} />
+              Imprimir Recibo
+            </button>
+            {!isSettlementConfirmed && (
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block z-50">
+                <div className="w-2 h-2 bg-gray-800 rotate-45 mx-auto -mb-1" />
+                <div className="bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap">
+                  El recibo debe estar confirmado para imprimir
+                </div>
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => backHref ? router.push(backHref) : router.back()}
+            className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm"
+          >
+            <ArrowLeft size={16} />
+            Regresar
+          </button>
+        </div>
+      </div>
 
       {isLoading ? (
         <div className="flex items-center justify-center p-8">
@@ -203,24 +297,6 @@ const ProviderSettlementPage = ({
                     <strong> Fecha de ingreso:</strong>{" "}
                     {selectedIncome.formattedDate}
                   </p>
-                  {mode === "edit" && isIncomeConfirmed && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        downloadProviderSettlementReceipt({
-                          id: selectedIncome.id,
-                          providerName: selectedIncome.providerName,
-                          netAmount: (selectedIncome as any).netAmount,
-                          settlementDetails: (selectedIncome as any).settlementDetails,
-                          settlementExpenses: (selectedIncome as any).settlementExpenses,
-                        })
-                      }
-                      className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg text-sm"
-                    >
-                      <Receipt size={16} />
-                      Descargar Recibo
-                    </button>
-                  )}
                 </div>
 
                 {/* ── Validation errors ── */}
@@ -294,17 +370,17 @@ const ProviderSettlementPage = ({
                     >
                       {isPending
                         ? mode === "create"
-                          ? "Generando..."
+                          ? "Creando..."
                           : "Actualizando..."
                         : mode === "create"
-                          ? "Generar Recibo"
-                          : "Actualizar Recibo"}
+                          ? "Crear Recibo de Pago"
+                          : "Actualizar Recibo de Pago"}
                     </button>
 
                     </>)}
                      <button
                       type="button"
-                      onClick={() => router.back()}
+                      onClick={() => backHref ? router.push(backHref) : router.back()}
                       className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-lg"
                     >
                       {isIncomeConfirmed ? "Regresar" : "Cancelar"}
@@ -312,10 +388,11 @@ const ProviderSettlementPage = ({
                   </div>
                 </form>
 
-                {/* ── Payments list (only visible once a settlement exists) ── */}
-                {isIncomeConfirmed && settlementId && (
+                {/* ── Payments list (only visible once a settlement exists and is confirmed) ── */}
+                {isSettlementConfirmed && settlementId && (
                   <EntityListSection<ProviderPaymentRow>
-                    title={"Pagos registrados "}
+                    title={"Pagos registrados"}
+                    subtitle={`Pagado: ${formatCurrency(totalPaymentsAmount)} · Pendiente: ${formatCurrency(remainingQuote)}`}
                     addButtonText="Agregar Pago"
                     isLoading={isLoadingPayments}
                     data={formattedPayments}

@@ -7,7 +7,12 @@ export async function validateSession() {
     return null;
   }
 
-  const sessionData = await verifyToken(sessionCookie.value);
+  let sessionData;
+  try {
+    sessionData = await verifyToken(sessionCookie.value);
+  } catch {
+    return null;
+  }
   if (
     !sessionData ||
     !sessionData.user ||

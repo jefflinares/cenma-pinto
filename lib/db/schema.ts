@@ -167,6 +167,8 @@ export type CustomerOrderDetail = typeof customerOrderDetails.$inferSelect;
 export type NewCustomerOrderDetail = typeof customerOrderDetails.$inferInsert;
 export type Payment = typeof payments.$inferSelect;
 export type NewPayment = typeof payments.$inferInsert;
+export type AccountMovement = typeof accountMovements.$inferSelect;
+export type NewAccountMovement = typeof accountMovements.$inferInsert;
 export type CashMovement = typeof cashMovements.$inferSelect;
 export type NewCashMovement = typeof cashMovements.$inferInsert;
 
@@ -211,6 +213,9 @@ export enum ActivityType {
   CREATE_PAYMENT = "CREATE_PAYMENT",
   UPDATE_PAYMENT = "UPDATE_PAYMENT",
   DELETE_PAYMENT = "DELETE_PAYMENT",
+  CREATE_CUSTOMER_PAYMENT = "CREATE_CUSTOMER_PAYMENT",
+  UPDATE_CUSTOMER_PAYMENT = "UPDATE_CUSTOMER_PAYMENT",
+  DELETE_CUSTOMER_PAYMENT = "DELETE_CUSTOMER_PAYMENT",
   CREATE_CASH_MOVEMENT = "CREATE_CASH_MOVEMENT",
   UPDATE_CASH_MOVEMENT = "UPDATE_CASH_MOVEMENT",
   DELETE_CASH_MOVEMENT = "DELETE_CASH_MOVEMENT",
@@ -421,13 +426,20 @@ export const customerAccounts = pgTable("customer_accounts", {
   id: serial("id").primaryKey(),
   customerId: integer("customer_id")
     .notNull()
+    .unique()
     .references(() => customers.id),
-  periodStart: timestamp("period_start").notNull(),
-  periodEnd: timestamp("period_end").notNull(),
   balance: decimal("balance", { precision: 10, scale: 2 })
     .notNull()
     .default("0"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+export const customerOrderStatusEnum = pgEnum("customer_order_status", [
+  "draft",
+  "pending",
+  "confirmed",
+  "paid",
+]);
 
 export const customerOrders = pgTable("customer_orders", {
   id: serial("id").primaryKey(),
@@ -438,6 +450,7 @@ export const customerOrders = pgTable("customer_orders", {
     .notNull()
     .references(() => income.id),
   date: timestamp("date").defaultNow().notNull(),
+  status: customerOrderStatusEnum("status").notNull().default("pending"),
   createdBy: integer("created_by").references(() => users.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -472,14 +485,28 @@ export const payments = pgTable("payments", {
   customerId: integer("customer_id")
     .notNull()
     .references(() => customers.id),
+  orderId: integer("order_id").references(() => customerOrders.id),
   date: timestamp("date").defaultNow().notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   paymentType: varchar("payment_type", { length: 20 }).notNull(),
+  reference: varchar("reference", { length: 100 }),
   receiptNumber: varchar("receipt_number", { length: 100 }),
   createdBy: integer("created_by").references(() => users.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   deletedAt: timestamp("deleted_at"),
+});
+
+export const accountMovements = pgTable("account_movements", {
+  id: serial("id").primaryKey(),
+  customerAccountId: integer("customer_account_id")
+    .notNull()
+    .references(() => customerAccounts.id),
+  type: varchar("type", { length: 10 }).notNull(), // 'DEBIT' | 'CREDIT'
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  orderId: integer("order_id").references(() => customerOrders.id),
+  paymentId: integer("payment_id").references(() => payments.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const cashMovements = pgTable("cash_movements", {

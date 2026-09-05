@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { Label } from "../label";
 import { Input } from "../input";
 import { Button } from "../button";
@@ -20,7 +20,11 @@ import {
   addOrder,
   updateOrder,
   deleteOrder,
+  confirmOrder,
 } from "@/app/(dashboard)/dashboard/ingresos/[id]/action";
+import { mutate } from "swr";
+import { useToast } from "@/components/ui/toast";
+import { CheckCircle, Circle } from "lucide-react";
 
 export type IncomeActionState = {
   id?: string | number;
@@ -65,6 +69,8 @@ const IncomeForm = ({
   onOrderChange,
 }: IncomeProps) => {
   const todayISO = new Date().toISOString().split("T")[0];
+  const { addToast } = useToast();
+  const [, startConfirmTransition] = useTransition();
 
   const [date, setDate] = useState<string>(
     state.formattedDate
@@ -131,8 +137,10 @@ const IncomeForm = ({
     id: number;
     customerId: number;
     customerName: string;
+    customerBalance: string | null;
     date: Date;
     formattedDate: string;
+    status: "draft" | "pending" | "confirmed" | "paid";
     orderDetails: OrderDetailRow[];
   };
 
@@ -176,6 +184,20 @@ const IncomeForm = ({
   const handleDeleteOrder = async (id: number) => {
     await handleOnDeleteOrder(id);
     onOrderChange?.();
+  };
+
+  const handleConfirmOrder = (orderId: number) => {
+    startConfirmTransition(async () => {
+      const formData = new FormData();
+      formData.append("id", String(orderId));
+      const result = await confirmOrder({} as any, formData);
+      if (result?.success) {
+        addToast("Orden confirmada", "success");
+        mutate(ordersRoute);
+      } else if (result?.error) {
+        addToast(result.error, "error", 4000);
+      }
+    });
   };
 
   const saleProducts = (productsData ?? [])
@@ -279,7 +301,7 @@ const IncomeForm = ({
                           <input
                             type="text"
                             disabled={disabled}
-                            value={quantities[String(product.id)]}
+                            value={quantities[String(product.id)] ?? 0}
                             onChange={(e) =>
                               setQuantities((prev) => ({
                                 ...prev,
@@ -399,12 +421,24 @@ const IncomeForm = ({
                   setIsOrderEditing(false);
                   setSelectedOrder(null);
                 }}
+                existingOrders={
+                  isOrderEditing
+                    ? undefined
+                    : orders?.map((o) => ({ id: o.id, customerId: o.customerId }))
+                }
+                onEditExistingOrder={(orderId) => {
+                  const order = orders?.find((o) => o.id === orderId);
+                  if (order) {
+                    setSelectedOrder(order);
+                    setIsOrderEditing(true);
+                  }
+                }}
               />,
             );
           };
 
           return (
-            <div className="mt-8">
+            <div className="mt-8" id="ventas">
               <EntityListSection<OrderRow>
                   title="Ventas registradas"
                   addButtonText="Registrar Venta"
@@ -415,6 +449,53 @@ const IncomeForm = ({
                   columns={[
                     { header: "Cliente", field: "customerName" },
                     { header: "Fecha", field: "formattedDate" },
+                    {
+                      header: "Balance",
+                      field: "customerBalance",
+                      render: (value) => `Q. ${Number(value ?? 0).toFixed(2)}`,
+                    },
+                    {
+                      header: "Estado",
+                      field: "status",
+                      render: (value) => {
+                        const map: Record<string, { label: string; className: string }> = {
+                          draft: { label: "Borrador", className: "text-gray-600 bg-gray-100" },
+                          pending: { label: "Pendiente", className: "text-yellow-600 bg-yellow-50" },
+                          confirmed: { label: "Confirmada", className: "text-green-700 bg-green-50" },
+                          paid: { label: "Pagada", className: "text-blue-700 bg-blue-50" },
+                        };
+                        const s = map[String(value)] ?? map.draft;
+                        return (
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${s.className}`}>
+                            {s.label}
+                          </span>
+                        );
+                      },
+                    },
+                  ]}
+                  actions={[
+                    {
+                      action: "confirm",
+                      renderCondition: (row) => row.status !== "confirmed",
+                      component: (row: OrderRow) => (
+                        <button
+                          onClick={() => handleConfirmOrder(row.id)}
+                          className="text-green-500 hover:text-green-700"
+                          title="Confirmar orden"
+                        >
+                          <Circle size={18} />
+                        </button>
+                      ),
+                    },
+                    {
+                      action: "confirm",
+                      renderCondition: (row) => row.status === "confirmed",
+                      component: (
+                        <span className="text-green-600" title="Orden confirmada">
+                          <CheckCircle size={18} />
+                        </span>
+                      ),
+                    },
                   ]}
                   currentPage={1}
                   totalItems={orders?.length ?? 0}
@@ -436,21 +517,34 @@ const IncomeForm = ({
                   }}
                   modalContent={addNewOrder()}
                   hasNestedData={(row) => row.orderDetails?.length > 0}
-                  renderNestedContent={(row) => (
-                    <NestedTable
-                      title="Detalle de Venta"
-                      data={row.orderDetails}
-                      columns={[
-                        { header: "Producto", field: "productName" },
-                        { header: "Cantidad", field: "quantity" },
-                        {
-                          header: "Precio",
-                          field: "price",
-                          render: (value) => `Q. ${Number(value).toFixed(2)}`,
-                        },
-                      ]}
-                    />
-                  )}
+                  renderNestedContent={(row) => {
+                    const orderTotal = row.orderDetails.reduce(
+                      (sum, d) => sum + Number(d.quantity) * Number(d.price),
+                      0,
+                    );
+                    return (
+                      <NestedTable
+                        title="Detalle de Venta"
+                        data={row.orderDetails}
+                        columns={[
+                          { header: "Producto", field: "productName" },
+                          { header: "Cantidad", field: "quantity" },
+                          {
+                            header: "Precio",
+                            field: "price",
+                            render: (value) => `Q. ${Number(value).toFixed(2)}`,
+                          },
+                          {
+                            header: "Subtotal",
+                            field: "price",
+                            render: (value, d) =>
+                              `Q. ${(Number((d as any).quantity) * Number(value)).toFixed(2)}`,
+                          },
+                        ]}
+                        footer={["Total", "", "", `Q. ${orderTotal.toFixed(2)}`]}
+                      />
+                    );
+                  }}
                 />
             </div>
           );

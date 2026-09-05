@@ -24,14 +24,8 @@ export const addCustomer = validatedActionWithUser(
           .values({ name, phone, address, email })
           .returning();
 
-        const now = new Date();
-        const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-
         await tx.insert(customerAccounts).values({
           customerId: customer.id,
-          periodStart,
-          periodEnd,
           balance: "0",
         });
 

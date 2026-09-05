@@ -65,19 +65,24 @@ export default function ProviderSettlementExpenses({
           newItem = { ...item, [field]: value as string };
         }
       } else if (field === "amount") {
-        const amount = Number(value);
-        if (amount < 0) {
-          setErrors((s) => ({
-            ...s,
-            [id]: {
-              field: "amount",
-              message: "El monto no puede ser negativo",
-            },
-          }));
-          return item;
-        } else {
+        if (value === "") {
           setErrors((s) => ({ ...s, [id]: null }));
-          newItem = { ...item, [field]: amount };
+          newItem = { ...item, [field]: "" };
+        } else {
+          const amount = Number(value);
+          if (amount < 0) {
+            setErrors((s) => ({
+              ...s,
+              [id]: {
+                field: "amount",
+                message: "El monto no puede ser negativo",
+              },
+            }));
+            return item;
+          } else {
+            setErrors((s) => ({ ...s, [id]: null }));
+            newItem = { ...item, [field]: amount };
+          }
         }
       }
 
@@ -155,7 +160,7 @@ export default function ProviderSettlementExpenses({
                       updateExpense(
                         item.id,
                         "amount",
-                        e.target.value === "" ? 0 : Number(e.target.value),
+                        e.target.value === "" ? "" : Number(e.target.value),
                       )
                     }
                     className={`w-24 rounded-md border px-2 py-1 text-center focus:ring [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${

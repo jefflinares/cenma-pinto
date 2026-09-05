@@ -3,6 +3,9 @@ import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { NewUser } from '@/lib/db/schema';
 
+if (!process.env.AUTH_SECRET) {
+  throw new Error('AUTH_SECRET environment variable is not set');
+}
 const key = new TextEncoder().encode(process.env.AUTH_SECRET);
 const SALT_ROUNDS = 10;
 

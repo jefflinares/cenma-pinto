@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { getIcon } from "@/lib/icons/classificationIcons";
 import { ProductClassification } from "@/lib/db/schema";
 import { Entity } from "@/components/ui/comboBox";
-import { ArrowLeft, CheckCircle, ReceiptText } from "lucide-react";
+import { ArrowLeft, CheckCircle, Receipt } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 
 export default function NewIncomePage() {
@@ -38,6 +38,7 @@ export default function NewIncomePage() {
     (string | number)[]
   >([]);
   const [incomeData, setIncomeData] = useState<any>(null);
+  const [settlementData, setSettlementData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPending, setIsPending] = useState(false);
 
@@ -50,6 +51,9 @@ export default function NewIncomePage() {
       const incomeJson = await incomeRes.json();
       const income = Array.isArray(incomeJson) ? incomeJson[0] : incomeJson;
       setIncomeData(income);
+      const settlementRes = await fetch(`/api/settlements?incomeId=${income.id}`);
+      const settlementJson = await settlementRes.json();
+      setSettlementData(Array.isArray(settlementJson) ? settlementJson[0] : null);
       if (income?.providerId && supplierEntities) {
         setSelectedProvider({
           id: income.providerId,
@@ -153,7 +157,11 @@ export default function NewIncomePage() {
         addToast(result.error, "error", 4000);
       } else if (result?.success) {
         addToast(result.success, "success");
-        await fetchIncomeData();
+        if (isCreating && result?.id) {
+          router.replace(`/dashboard/ingresos/${result.id}`);
+        } else {
+          await fetchIncomeData();
+        }
       }
     } catch (error) {
       console.error("Error saving income:", error);
@@ -199,22 +207,19 @@ export default function NewIncomePage() {
           </Button>
         )}
         {isConfirmed && (
-          <>
-            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm font-medium">
-              <CheckCircle className="h-4 w-4" />
-              Confirmado
-            </span>
-            <Button
-              className="text-blue-500 hover:text-blue-700 flex items-center gap-1"
-              onClick={() => {
-                router.push(`/dashboard/pagos/nuevo/${incomeId}`);
-                // console.log("Generar recibo para el ingreso:", income);
-              }}
-            >
-              <ReceiptText size={18} />
-              <span className="text-sm">Generar Recibo</span>
-            </Button>
-          </>
+          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm font-medium">
+            <CheckCircle className="h-4 w-4" />
+            Confirmado
+          </span>
+        )}
+        {isConfirmed && (
+          <Button
+            className="bg-orange-500 hover:bg-orange-600 text-white flex items-center gap-1"
+            onClick={() => router.push(`/dashboard/pagos/nuevo/${incomeId}`)}
+          >
+            <Receipt size={18} />
+            <span className="text-sm">Generar Recibo</span>
+          </Button>
         )}
         <Button
           onClick={() => router.push("/dashboard/proveedores")}

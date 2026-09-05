@@ -14,6 +14,7 @@ import {
 } from "@/app/(dashboard)/dashboard/pagos/actions";
 import { Entity } from "../ui/comboBox";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/toast";
 
 export function useProviderSettlement({
   mode, // "create" | "edit"
@@ -23,18 +24,19 @@ export function useProviderSettlement({
   initialId: string;
 }) {
   const router = useRouter();
+  const { addToast } = useToast();
   const [selectedOption, setSelectedOption] = useState<Entity | null>(null);
   const [selectedIncome, setSelectedIncome] = useState<
     IncomeRow | ProviderSettlementRow | null
   >(null);
 
-  const { data: incomes, isLoading } = useFetchData<
+  const { data: incomes, isLoading, mutate: refetch } = useFetchData<
     IncomeRow | ProviderSettlementRow
   >(
     mode === "create"
       ? initialId === "0"
-        ? "/api/incomes"
-        : `/api/incomes?incomeId=${initialId}`
+        ? "/api/incomes?forSettlement=true"
+        : `/api/incomes?incomeId=${initialId}&forSettlement=true`
       : // Edit mode always fetchs providerSettlement by id, so we can get the associated income from that data
         `/api/settlements?settlementId=${initialId}`,
   );
@@ -251,13 +253,20 @@ export function useProviderSettlement({
 
       if (response?.error) {
         console.log("🚀 ~ handleSubmit ~ response:", response);
+        if (response.existingSettlementId) {
+          window.location.href = `/dashboard/pagos/${response.existingSettlementId}`;
+          return;
+        }
         setValidationErrors([response.error]);
         scrollToErrorNotification();
         return;
       }
 
-      // navigate back after either operation
-      router.push("/dashboard/pagos");
+      if (mode === "create") {
+        window.location.href = `/dashboard/pagos/${response?.id}`;
+      } else {
+        addToast("Recibo actualizado correctamente.", "success");
+      }
     } finally {
       setIsPending(false);
     }
@@ -318,5 +327,6 @@ export function useProviderSettlement({
     onIncomeChange,
     formattedIncomes,
     router,
+    refetch,
   };
 }
