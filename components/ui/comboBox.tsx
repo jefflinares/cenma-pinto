@@ -29,11 +29,14 @@ function ComboBoxWithModal({
   setComboBoxSelectedOption,
   ...props
 }: ComboBoxWithModalProps) {
-  console.log("🚀 ~ ComboBoxWithModal ~ selectedOption:", selectedOption)
   const [options, setOptions] = useState(data || []);
-  console.log("🚀 ~ ComboBoxWithModal ~ data:", data)
-  console.log("🚀 ~ ComboBoxWithModal ~ options:", options)
   const [query, setQuery] = useState(selectedOption?.name ?? "");
+
+  const dataKey = (data || []).map((d) => d.id).join(",");
+  useEffect(() => {
+    setOptions(data || []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataKey]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newOption, setNewOption] = useState({ id: 0, name: "" });
 
@@ -49,7 +52,10 @@ function ComboBoxWithModal({
     if (exactMatch) {
       setComboBoxSelectedOption(exactMatch);
     }
-  }, [query, options, setComboBoxSelectedOption]);
+  // setComboBoxSelectedOption intentionally omitted — callers may pass inline
+  // functions; including it would cause infinite re-renders.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, options]);
 
   useEffect(() => {
     setQuery(selectedOption?.name ?? "");

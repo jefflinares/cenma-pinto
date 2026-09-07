@@ -515,4 +515,16 @@ export const cashMovements = pgTable("cash_movements", {
   concept: text("concept").notNull(),
   type: varchar("type", { length: 10 }).notNull(), // 'INCOME' | 'EXPENSE' | 'INITIAL'
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  paymentId: integer("payment_id").references(() => payments.id),
+  providerPaymentId: integer("provider_payment_id").references(() => providerPayments.id),
 });
+
+export const cashDaySummary = pgTable("cash_day_summary", {
+  id: serial("id").primaryKey(),
+  date: date("date").notNull().unique(),
+  openingBalance: decimal("opening_balance", { precision: 10, scale: 2 }).notNull(),
+  closingBalance: decimal("closing_balance", { precision: 10, scale: 2 }),
+  closedAt: timestamp("closed_at"),
+  closedBy: integer("closed_by").references(() => users.id),
+});
+export type CashDaySummary = typeof cashDaySummary.$inferSelect;

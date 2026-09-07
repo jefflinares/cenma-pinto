@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 function Input({ className, type, step, ...props }: React.ComponentProps<"input">) {
   const numberInputClass = type === "number" ? "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" : "";
   const numberStep = type === "number" && !step ? "any" : step;
-  
+
   return (
     <input
       type={type}

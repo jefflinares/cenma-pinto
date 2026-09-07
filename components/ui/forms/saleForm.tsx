@@ -233,7 +233,7 @@ const SaleForm = ({
                         type="number"
                         min={0}
                         step={1}
-                        value={items[key]?.amount ?? "0"}
+                        value={items[key]?.amount || ""}
                         onChange={(e) =>
                           setItems((prev) => ({
                             ...prev,

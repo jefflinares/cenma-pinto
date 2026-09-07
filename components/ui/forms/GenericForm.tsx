@@ -150,7 +150,8 @@ const GenericForm = ({
 
   const renderInputField = (field: GenericFormField) => {
     // Ensure defaultValue is string or number, not an array
-    const defaultVal = Array.isArray(field.defaultValue) ? "" : (field.defaultValue ?? "");
+    const rawDefault = Array.isArray(field.defaultValue) ? "" : (field.defaultValue ?? "");
+    const defaultVal = field.type === "number" && (rawDefault === 0 || rawDefault === "0") ? "" : rawDefault;
     
     return (
       <>
@@ -164,6 +165,7 @@ const GenericForm = ({
           placeholder={field.placeholder}
           defaultValue={defaultVal}
           required={field.required}
+          onBlur={field.type === "number" ? (e) => { if (e.currentTarget.value === "") e.currentTarget.value = "0"; } : undefined}
           {...field.props}
         />
       </>

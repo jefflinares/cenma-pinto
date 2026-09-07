@@ -331,7 +331,7 @@ export default function ProviderSettlementTable<
                   <input
                     type="text"
                     readOnly={status === "confirmed"}
-                    value={Math.floor(Number(item.quantity)) ?? ""}
+                    value={Math.floor(Number(item.quantity)) || ""}
                     inputMode="numeric"
                     pattern="\d*"
                     className={`w-14 sm:w-20 rounded-md border px-2 py-1 text-center focus:ring ${

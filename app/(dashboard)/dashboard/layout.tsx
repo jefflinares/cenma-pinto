@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Users, Factory, BanknoteArrowUp, DollarSign, Wallet, Settings, Shield, Activity, Menu, Boxes } from 'lucide-react';
+import ScrollToTop from '@/components/ui/ScrollToTop';
 
 export default function DashboardLayout({
   children
@@ -71,7 +72,10 @@ export default function DashboardLayout({
         </aside>
 
         {/* Main content */}
-        <main className="flex-1 overflow-y-auto p-0 lg:p-4">{children}</main>
+        <main className="flex-1 overflow-y-auto p-0 lg:p-4">
+          <ScrollToTop />
+          {children}
+        </main>
       </div>
     </div>
   );

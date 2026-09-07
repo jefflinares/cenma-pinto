@@ -6,6 +6,7 @@ import { db } from "@/lib/db/drizzle";
 import {
   ActivityType,
   accountMovements,
+  cashMovements,
   customerAccounts,
   customerOrderDetails,
   customerOrders,
@@ -118,6 +119,17 @@ export const addCustomerPayment = validatedActionWithUser(
             type: "CREDIT",
             amount: String(requested),
             orderId: Number(orderId),
+            paymentId: newPayment.id,
+          });
+        }
+
+        // 7. If cash payment → record INCOME in cash register
+        if (String(paymentType) === "cash") {
+          await tx.insert(cashMovements).values({
+            concept: `Cobro cliente - Orden #${orderId}`,
+            type: "INCOME",
+            amount: String(requested),
+            date: new Date(`${String(date)}T12:00:00`),
             paymentId: newPayment.id,
           });
         }

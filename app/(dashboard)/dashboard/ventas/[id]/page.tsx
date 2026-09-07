@@ -244,6 +244,7 @@ const EditSale = () => {
         )}
         <Button
           variant="outline"
+          disabled={!isLocked}
           onClick={() =>
             generateCustomerOrderReceiptPdf({
               id: order.id,

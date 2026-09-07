@@ -5,6 +5,7 @@ import { validatedActionWithUser } from "@/lib/auth/middleware";
 import { db } from "@/lib/db/drizzle";
 import {
   ActivityType,
+  cashMovements,
   income,
   providerPayments,
   providerSettlementDetails,
@@ -601,6 +602,17 @@ export const addProviderPayment = validatedActionWithUser(
             createdBy: user.id,
           })
           .returning();
+
+        // 4. If cash payment → record EXPENSE in cash register
+        if (String(payment.paymentType || "transfer") === "cash") {
+          await tx.insert(cashMovements).values({
+            concept: `Pago proveedor - Liquidación #${settlementId}`,
+            type: "EXPENSE",
+            amount: String(requested),
+            date: new Date(String(payment.date)),
+            providerPaymentId: newPayment.id,
+          });
+        }
 
         return newPayment;
       });

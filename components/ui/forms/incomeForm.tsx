@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, useRef } from "react";
 import { Label } from "../label";
 import { Input } from "../input";
 import { Button } from "../button";
@@ -23,6 +23,7 @@ import {
   confirmOrder,
 } from "@/app/(dashboard)/dashboard/ingresos/[id]/action";
 import { mutate } from "swr";
+import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/toast";
 import { CheckCircle, Circle } from "lucide-react";
 
@@ -70,7 +71,10 @@ const IncomeForm = ({
 }: IncomeProps) => {
   const todayISO = new Date().toISOString().split("T")[0];
   const { addToast } = useToast();
+  const router = useRouter();
   const [, startConfirmTransition] = useTransition();
+  const [providerError, setProviderError] = useState(false);
+  const providerRef = useRef<HTMLDivElement>(null);
 
   const [date, setDate] = useState<string>(
     state.formattedDate
@@ -214,12 +218,18 @@ const IncomeForm = ({
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!selectedOption?.id) {
+      setProviderError(true);
+      providerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    setProviderError(false);
     const formData = new FormData();
     if (isEditing && state.id) {
       formData.append("id", String(state.id));
     }
     formData.append("date", date);
-    formData.append("providerId", String(selectedOption?.id ?? ""));
+    formData.append("providerId", String(selectedOption.id));
     productsData?.forEach((p) => {
       const key = String(p.id);
       formData.append(`productId_${key}`, key);
@@ -247,7 +257,7 @@ const IncomeForm = ({
         </div>
 
         {/* Provider */}
-        <div>
+        <div ref={providerRef}>
           <Label className="mb-2">Proveedor</Label>
           <div className={disabled ? "pointer-events-none opacity-60" : ""}>
             <ComboBoxWithModal
@@ -255,9 +265,15 @@ const IncomeForm = ({
               modalChildren={modalChildren}
               onAddCallBackAction={onAddCallBackAction}
               selectedOption={selectedOption}
-              setComboBoxSelectedOption={setComboBoxSelectedOption}
+              setComboBoxSelectedOption={(opt) => {
+                setComboBoxSelectedOption?.(opt);
+                if (opt) setProviderError(false);
+              }}
             />
           </div>
+          {providerError && (
+            <p className="mt-1 text-xs text-red-500">Debes seleccionar un proveedor</p>
+          )}
         </div>
 
         {/* Products table */}
@@ -301,7 +317,7 @@ const IncomeForm = ({
                           <input
                             type="text"
                             disabled={disabled}
-                            value={quantities[String(product.id)] ?? 0}
+                            value={quantities[String(product.id)] || ""}
                             onChange={(e) =>
                               setQuantities((prev) => ({
                                 ...prev,
@@ -502,9 +518,7 @@ const IncomeForm = ({
                   pageSize={50}
                   onPageChange={() => {}}
                   onEdit={(order) => {
-                    setSelectedOrder(order);
-                    setIsOrderEditing(true);
-                    setIsOrderModalOpen(true);
+                    router.push(`/dashboard/ventas/${order.id}`);
                   }}
                   onDelete={(order) => handleDeleteOrder(Number(order.id))}
                   isModalOpen={isOrderModalOpen}
