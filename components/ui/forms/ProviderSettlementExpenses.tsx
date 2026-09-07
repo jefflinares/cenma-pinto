@@ -59,11 +59,10 @@ export default function ProviderSettlementExpenses({
               message: "El concepto no puede estar vacío",
             },
           }));
-          return item;
         } else {
           setErrors((s) => ({ ...s, [id]: null }));
-          newItem = { ...item, [field]: value as string };
         }
+        newItem = { ...item, [field]: value as string };
       } else if (field === "amount") {
         if (value === "") {
           setErrors((s) => ({ ...s, [id]: null }));

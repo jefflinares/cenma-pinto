@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Users, Factory, BanknoteArrowUp, DollarSign, Wallet, Settings, Shield, Activity, Menu, Boxes } from 'lucide-react';
+import { Users, Factory, BanknoteArrowUp, DollarSign, Wallet, Settings, Shield, Activity, Menu, Boxes, LayoutDashboard } from 'lucide-react';
 import ScrollToTop from '@/components/ui/ScrollToTop';
 
 export default function DashboardLayout({
@@ -18,6 +18,7 @@ export default function DashboardLayout({
   const navItems = [
     { href: '/dashboard', icon: Users, label: 'Team' },
     { href: '/dashboard/general', icon: Settings, label: 'General' },
+    { href: '/dashboard/inicio', icon: LayoutDashboard, label: 'Inicio' },
     { href: '/dashboard/productos', icon: Boxes, label: 'Productos' },
     { href: '/dashboard/proveedores', icon: Factory, label: 'Ingresos de Proveedores' },
     { href: '/dashboard/pagos', icon: BanknoteArrowUp , label: 'Pagos' },
