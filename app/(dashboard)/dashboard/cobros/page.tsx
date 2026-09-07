@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/toast";
 import { ComboBoxWithModal, Entity } from "@/components/ui/comboBox";
 import { Modal } from "@/components/ui/modal";
-import { openCashDay, closeCashDay, addCashWithdrawal, addCobro } from "./actions";
+import { Pencil, Check, X } from "lucide-react";
+import { updateOpeningBalance, closeCashDay, addCashWithdrawal, addCobro } from "./actions";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -74,11 +75,12 @@ function fmt(v: string | number) {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function CobrosPage() {
-  const { addToast: showToast } = useToast();
+  const { addToast } = useToast();
   const [isPending, startTransition] = useTransition();
 
   // ── Cash state
   const [cashDate, setCashDate] = useState(today);
+  const [editing, setEditing] = useState(false);
   const [openingInput, setOpeningInput] = useState("");
   const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
   const [withdrawalConcept, setWithdrawalConcept] = useState("");
@@ -103,7 +105,6 @@ export default function CobrosPage() {
   const [orderBalances, setOrderBalances] = useState<OrderBalance[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
 
-  // Fetch order balances when customer changes
   const handleCustomerSelect = useCallback(async (entity: Entity | null) => {
     setSelectedCustomer(entity);
     setOrderBalances([]);
@@ -118,32 +119,41 @@ export default function CobrosPage() {
     }
   }, []);
 
-  // Stable dispatch wrapper for ComboBoxWithModal (it always passes direct values, not updater fns)
   const dispatchCustomerSelect = useCallback<React.Dispatch<React.SetStateAction<Entity | null>>>(
-    (val) => {
-      if (typeof val !== "function") handleCustomerSelect(val);
-    },
+    (val) => { if (typeof val !== "function") handleCustomerSelect(val); },
     [handleCustomerSelect],
   );
 
   const totalPending = orderBalances.reduce((s, o) => s + o.remaining, 0);
 
+  // ── Cash summary calcs
+  const incomeTotal = movements.filter((m) => m.type === "INCOME").reduce((s, m) => s + Number(m.amount), 0);
+  const expenseTotal = movements.filter((m) => m.type === "EXPENSE").reduce((s, m) => s + Number(m.amount), 0);
+  const currentBalance = daySummary
+    ? Number(daySummary.openingBalance) + incomeTotal - expenseTotal
+    : 0;
+
   // ── Actions
 
-  function handleOpenCash() {
+  function handleSaveOpening() {
     const balance = parseFloat(openingInput);
     if (Number.isNaN(balance) || balance < 0) {
-      showToast("Ingresa un saldo inicial válido.", "error");
+      addToast("Ingresa un saldo inicial válido.", "error");
       return;
     }
     startTransition(async () => {
       const fd = new FormData();
       fd.append("date", cashDate);
       fd.append("openingBalance", String(balance));
-      const res = await openCashDay({}, fd);
-      if (res?.error) showToast(res.error, "error");
-      else { showToast(res?.success ?? "Caja abierta.", "success"); refreshCash(); }
+      const res = await updateOpeningBalance({}, fd);
+      if (res?.error) addToast(res.error, "error");
+      else { addToast(res?.success ?? "Saldo guardado.", "success"); setEditing(false); refreshCash(); }
     });
+  }
+
+  function startEdit() {
+    setOpeningInput(daySummary?.openingBalance ?? suggestedOpening);
+    setEditing(true);
   }
 
   function handleCloseCash() {
@@ -151,15 +161,15 @@ export default function CobrosPage() {
       const fd = new FormData();
       fd.append("date", cashDate);
       const res = await closeCashDay({}, fd);
-      if (res?.error) showToast(res.error, "error");
-      else { showToast(res?.success ?? "Caja cerrada.", "success"); refreshCash(); }
+      if (res?.error) addToast(res.error, "error");
+      else { addToast(res?.success ?? "Caja cerrada.", "success"); refreshCash(); }
       setShowCloseConfirm(false);
     });
   }
 
   function handleWithdrawal() {
     if (!withdrawalConcept.trim() || !withdrawalAmount) {
-      showToast("Completa concepto y monto.", "error");
+      addToast("Completa concepto y monto.", "error");
       return;
     }
     startTransition(async () => {
@@ -168,9 +178,9 @@ export default function CobrosPage() {
       fd.append("amount", withdrawalAmount);
       fd.append("date", cashDate);
       const res = await addCashWithdrawal({}, fd);
-      if (res?.error) showToast(res.error, "error");
+      if (res?.error) addToast(res.error, "error");
       else {
-        showToast(res?.success ?? "Retiro registrado.", "success");
+        addToast(res?.success ?? "Retiro registrado.", "success");
         setWithdrawalConcept("");
         setWithdrawalAmount("");
         setShowWithdrawalModal(false);
@@ -181,8 +191,8 @@ export default function CobrosPage() {
 
   function handleCobro(e: React.FormEvent) {
     e.preventDefault();
-    if (!selectedCustomer) { showToast("Selecciona un cliente.", "error"); return; }
-    if (!cobroAmount) { showToast("Ingresa un monto.", "error"); return; }
+    if (!selectedCustomer) { addToast("Selecciona un cliente.", "error"); return; }
+    if (!cobroAmount) { addToast("Ingresa un monto.", "error"); return; }
     startTransition(async () => {
       const fd = new FormData();
       fd.append("customerId", String(selectedCustomer.id));
@@ -191,9 +201,9 @@ export default function CobrosPage() {
       fd.append("date", cobroDate);
       fd.append("reference", cobroRef);
       const res = await addCobro({}, fd);
-      if (res?.error) showToast(res.error, "error");
+      if (res?.error) addToast(res.error, "error");
       else {
-        showToast(res?.success ?? "Cobro registrado.", "success");
+        addToast(res?.success ?? "Cobro registrado.", "success");
         setCobroAmount("");
         setCobroRef("");
         setSelectedCustomer(null);
@@ -203,38 +213,40 @@ export default function CobrosPage() {
     });
   }
 
-  // ── Cash summary calcs
-  const incomeTotal = movements.filter((m) => m.type === "INCOME").reduce((s, m) => s + Number(m.amount), 0);
-  const expenseTotal = movements.filter((m) => m.type === "EXPENSE").reduce((s, m) => s + Number(m.amount), 0);
-  const currentBalance = daySummary
-    ? Number(daySummary.openingBalance) + incomeTotal - expenseTotal
-    : 0;
-
   const customerEntities: Entity[] = (customers ?? []).map((c) => ({ id: c.id, name: c.name }));
 
   return (
     <div className="p-4 space-y-8 max-w-4xl mx-auto">
       {/* ── Caja Section ── */}
       <section className="border rounded-lg p-4 space-y-4">
-        <div className="flex items-center justify-between">
+        {/* Header */}
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <h2 className="text-xl font-semibold">Caja</h2>
           <div className="flex items-center gap-2">
             <Label>Fecha</Label>
             <Input
               type="date"
               value={cashDate}
-              onChange={(e) => setCashDate(e.target.value)}
+              onChange={(e) => { setCashDate(e.target.value); setEditing(false); }}
               className="w-40"
             />
           </div>
         </div>
 
-        {/* No day opened */}
-        {!daySummary && (
-          <div className="space-y-3 max-w-sm">
-            <p className="text-sm text-gray-600">No hay apertura de caja para esta fecha.</p>
-            <div className="space-y-1">
-              <Label>Saldo inicial</Label>
+        {/* Opening balance row */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="text-sm text-gray-500 font-medium">Saldo inicial:</span>
+          {!editing ? (
+            <>
+              <span className="text-xl font-bold text-gray-800">
+                {daySummary ? fmt(daySummary.openingBalance) : <span className="text-gray-400 text-base font-normal">Sin registro</span>}
+              </span>
+              <button onClick={startEdit} className="text-gray-400 hover:text-gray-700" title="Editar">
+                <Pencil className="w-4 h-4" />
+              </button>
+            </>
+          ) : (
+            <div className="flex items-center gap-2">
               <Input
                 type="number"
                 min="0"
@@ -242,18 +254,19 @@ export default function CobrosPage() {
                 placeholder={`Sugerido: ${fmt(suggestedOpening)}`}
                 value={openingInput}
                 onChange={(e) => setOpeningInput(e.target.value)}
+                autoFocus
+                className="w-40"
+                onKeyDown={(e) => { if (e.key === "Enter") handleSaveOpening(); if (e.key === "Escape") setEditing(false); }}
               />
+              <Button size="sm" onClick={handleSaveOpening} disabled={isPending}><Check className="w-4 h-4" /></Button>
+              <Button size="sm" variant="ghost" onClick={() => setEditing(false)} disabled={isPending}><X className="w-4 h-4" /></Button>
             </div>
-            <Button onClick={handleOpenCash} disabled={isPending}>
-              Abrir caja
-            </Button>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* Day opened */}
+        {/* Summary cards — only when a day is registered */}
         {daySummary && (
-          <div className="space-y-4">
-            {/* Summary cards */}
+          <>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <SummaryCard label="Saldo Inicial" value={fmt(daySummary.openingBalance)} color="blue" />
               <SummaryCard label="+ Ingresos" value={fmt(incomeTotal)} color="green" />
@@ -265,9 +278,9 @@ export default function CobrosPage() {
               />
             </div>
 
-            {/* Actions */}
+            {/* Action buttons */}
             <div className="flex gap-2 flex-wrap">
-              {!daySummary.closedAt && (
+              {!daySummary.closedAt ? (
                 <>
                   <Button variant="outline" onClick={() => setShowWithdrawalModal(true)} disabled={isPending}>
                     Registrar Retiro
@@ -276,8 +289,7 @@ export default function CobrosPage() {
                     Cerrar Caja
                   </Button>
                 </>
-              )}
-              {daySummary.closedAt && (
+              ) : (
                 <span className="text-sm text-gray-500 self-center">
                   Caja cerrada el {new Date(daySummary.closedAt).toLocaleString("es-GT")}
                 </span>
@@ -320,7 +332,7 @@ export default function CobrosPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </>
         )}
       </section>
 
@@ -338,7 +350,6 @@ export default function CobrosPage() {
             />
           </div>
 
-          {/* Order balance preview */}
           {selectedCustomer && !loadingOrders && orderBalances.length > 0 && (
             <div className="bg-gray-50 rounded p-3 space-y-1 text-sm">
               <p className="font-medium text-gray-700">Ventas confirmadas pendientes:</p>
@@ -354,9 +365,7 @@ export default function CobrosPage() {
               </div>
             </div>
           )}
-          {selectedCustomer && loadingOrders && (
-            <p className="text-sm text-gray-400">Cargando ventas...</p>
-          )}
+          {selectedCustomer && loadingOrders && <p className="text-sm text-gray-400">Cargando ventas...</p>}
           {selectedCustomer && !loadingOrders && orderBalances.length === 0 && (
             <p className="text-sm text-gray-500">No hay ventas confirmadas pendientes.</p>
           )}
@@ -444,7 +453,7 @@ export default function CobrosPage() {
         </Modal>
       )}
 
-      {/* ── Close Confirm Modal ── */}
+      {/* ── Close confirm modal ── */}
       {showCloseConfirm && (
         <Modal
           title="Cerrar Caja"
@@ -464,23 +473,10 @@ export default function CobrosPage() {
   );
 }
 
-// ─── Summary card helper ──────────────────────────────────────────────────────
+// ─── Summary card ─────────────────────────────────────────────────────────────
 
-function SummaryCard({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: string;
-  color: "blue" | "green" | "red" | "gray";
-}) {
-  const cls = {
-    blue: "border-blue-200 bg-blue-50 text-blue-800",
-    green: "border-green-200 bg-green-50 text-green-800",
-    red: "border-red-200 bg-red-50 text-red-800",
-    gray: "border-gray-200 bg-gray-50 text-gray-800",
-  }[color];
+function SummaryCard({ label, value, color }: { label: string; value: string; color: "blue" | "green" | "red" | "gray" }) {
+  const cls = { blue: "border-blue-200 bg-blue-50 text-blue-800", green: "border-green-200 bg-green-50 text-green-800", red: "border-red-200 bg-red-50 text-red-800", gray: "border-gray-200 bg-gray-50 text-gray-800" }[color];
   return (
     <div className={`border rounded-lg p-3 ${cls}`}>
       <p className="text-xs font-medium opacity-70">{label}</p>

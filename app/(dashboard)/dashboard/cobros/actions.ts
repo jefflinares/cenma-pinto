@@ -72,6 +72,73 @@ export const openCashDay = validatedActionWithUser(
 );
 
 // ---------------------------------------------------------------------------
+// updateOpeningBalance
+// ---------------------------------------------------------------------------
+
+const updateOpeningBalanceSchema = z.object({
+  date: z.string().min(1),
+  openingBalance: z.union([z.string().min(1).transform(Number), z.number()]),
+});
+
+export const updateOpeningBalance = validatedActionWithUser(
+  updateOpeningBalanceSchema,
+  async (data, _, user) => {
+    const { date, openingBalance } = data as any;
+    try {
+      const balance = Number(openingBalance);
+      if (Number.isNaN(balance) || balance < 0) {
+        return { error: "El saldo inicial debe ser un número válido." };
+      }
+
+      await db.transaction(async (tx) => {
+        const [existing] = await tx
+          .select({ id: cashDaySummary.id })
+          .from(cashDaySummary)
+          .where(eq(cashDaySummary.date, String(date)))
+          .limit(1);
+
+        if (existing) {
+          await tx
+            .update(cashDaySummary)
+            .set({ openingBalance: String(balance) })
+            .where(eq(cashDaySummary.id, existing.id));
+
+          // Update the INITIAL cash movement for the day
+          await tx
+            .update(cashMovements)
+            .set({ amount: String(balance) })
+            .where(
+              and(
+                eq(cashMovements.type, "INITIAL"),
+                sql`DATE(${cashMovements.date}) = ${date}::date`,
+              ),
+            );
+        } else {
+          await tx.insert(cashDaySummary).values({
+            date: String(date),
+            openingBalance: String(balance),
+          });
+          await tx.insert(cashMovements).values({
+            concept: "Apertura de caja",
+            type: "INITIAL",
+            amount: String(balance),
+            date: new Date(`${date}T08:00:00`),
+          });
+        }
+      });
+
+      const teamId = 1;
+      await logActivity(teamId, user.id, ActivityType.UPDATE_CASH_MOVEMENT);
+
+      return { success: "Saldo inicial guardado." };
+    } catch (error) {
+      console.error("updateOpeningBalance error", error);
+      return { error: "Error al guardar el saldo inicial." };
+    }
+  },
+);
+
+// ---------------------------------------------------------------------------
 // closeCashDay
 // ---------------------------------------------------------------------------
 
@@ -93,9 +160,6 @@ export const closeCashDay = validatedActionWithUser(
       if (!summary) return { error: "No se encontró apertura de caja para esta fecha." };
       if (summary.closedAt) return { error: "La caja ya fue cerrada." };
 
-      const start = new Date(`${date}T00:00:00`);
-      const end = new Date(`${date}T23:59:59`);
-
       const [incomeRow] = await db
         .select({
           total: sql<string>`COALESCE(SUM(${cashMovements.amount}::numeric), 0)`,
@@ -104,8 +168,7 @@ export const closeCashDay = validatedActionWithUser(
         .where(
           and(
             eq(cashMovements.type, "INCOME"),
-            sql`${cashMovements.date} >= ${start}`,
-            sql`${cashMovements.date} <= ${end}`,
+            sql`DATE(${cashMovements.date}) = ${date}::date`,
           ),
         );
 
@@ -117,8 +180,7 @@ export const closeCashDay = validatedActionWithUser(
         .where(
           and(
             eq(cashMovements.type, "EXPENSE"),
-            sql`${cashMovements.date} >= ${start}`,
-            sql`${cashMovements.date} <= ${end}`,
+            sql`DATE(${cashMovements.date}) = ${date}::date`,
           ),
         );
 
